@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>두더지 잡기 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#060d00;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;user-select:none}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#86efac;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}
+.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#86efac}
+.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;gap:20px}
+
+/* TIMER BAR */
+.timer-bar-wrap{width:100%;max-width:400px;height:10px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}
+.timer-bar{height:100%;border-radius:999px;background:linear-gradient(90deg,#166534,#86efac);transition:width 1s linear}
+
+/* GRID */
+.grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+  max-width:380px;width:100%;
+}
+.hole{
+  aspect-ratio:1;border-radius:50%;background:#0d1a05;
+  border:3px solid #1a3a08;position:relative;overflow:hidden;
+  cursor:pointer;transition:border-color .15s;
+}
+.hole:hover{border-color:#4ade80}
+.mole-inner{
+  position:absolute;bottom:-100%;left:0;right:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(28px,8vw,48px);line-height:1;
+  transition:bottom .18s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+}
+.hole.up .mole-inner{bottom:0}
+.hole.bomb .mole-inner{filter:hue-rotate(0deg)}
+
+/* Hit effect */
+.hit-anim{
+  position:absolute;inset:0;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;pointer-events:none;
+  animation:hitfx .4s ease forwards;opacity:0;
+}
+@keyframes hitfx{0%{opacity:1;transform:scale(.6)}100%{opacity:0;transform:scale(1.6)}}
+
+.score-popup{
+  position:fixed;pointer-events:none;font-size:22px;font-weight:900;
+  animation:floatup .7s ease forwards;z-index:100;
+}
+@keyframes floatup{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-60px)}}
+
+.legend{display:flex;gap:24px;font-size:13px;color:rgba(255,255,255,.5)}
+.legend span{display:flex;align-items:center;gap:6px}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#060d00;border:1px solid rgba(134,239,172,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:10px}
+.big-score{font-size:56px;font-weight:900;color:#86efac;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#166534,#16a34a);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">🔨 두더지 잡기</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="combo">0</div><div class="stat-l">연속</div></div>
+    <div class="stat"><div class="stat-v" id="timer">60</div><div class="stat-l">초</div></div>
+  </div>
+</div>
+
+<div class="game-wrap">
+  <div class="timer-bar-wrap"><div class="timer-bar" id="timer-bar"></div></div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="legend">
+    <span>🐹 두더지 +10</span>
+    <span>💣 폭탄 -20</span>
+    <span>⭐ 황금두더지 +30</span>
+  </div>
+</div>
+
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>🔨 두더지 잡기</h2>
+    <p>올라오는 두더지를 빠르게 잡으세요!<br>💣 폭탄을 치면 점수가 깎입니다.<br>⭐ 황금 두더지는 +30점!</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+
+<script>
+const HOLES=9;
+let score=0,combo=0,timeLeft=60,spawnInterval,timerInterval,running=false;
+const holes=[];
+
+function buildGrid(){
+  const g=document.getElementById('grid');
+  g.innerHTML='';
+  holes.length=0;
+  for(let i=0;i<HOLES;i++){
+    const hole=document.createElement('div');
+    hole.className='hole';
+    hole.innerHTML='<div class="mole-inner" id="mole-'+i+'">🐹</div>';
+    hole.dataset.idx=i;
+    hole.addEventListener('click',()=>whack(i));
+    hole.addEventListener('touchstart',e=>{e.preventDefault();whack(i)},{passive:false});
+    g.appendChild(hole);
+    holes.push({el:hole,up:false,type:'mole',timeout:null});
+  }
+}
+
+function spawnMole(){
+  if(!running)return;
+  // pick empty hole
+  const empties=holes.map((h,i)=>!h.up?i:-1).filter(i=>i>=1);
+  if(!empties.length)return;
+  const idx=empties[Math.floor(Math.random()*empties.length)];
+  const h=holes[idx];
+
+  // Determine type
+  const r=Math.random();
+  let type,em;
+  if(r<0.12){type='gold';em='⭐';}
+  else if(r<0.28){type='bomb';em='💣';}
+  else{type='mole';em='🐹';}
+
+  h.type=type;h.up=true;
+  const moleEl=document.getElementById('mole-'+idx);
+  moleEl.textContent=em;
+  h.el.classList.add('up');
+
+  // Stay up time: shorter as time runs out
+  const stayMs=Math.max(800,1600-(60-timeLeft)*15);
+  h.timeout=setTimeout(()=>retreat(idx,false),stayMs);
+}
+
+function retreat(idx,hit){
+  const h=holes[idx];
+  clearTimeout(h.timeout);
+  h.up=false;h.el.classList.remove('up');
+  if(!hit&&h.type==='mole'){combo=0;document.getElementById('combo').textContent=0;}
+}
+
+function whack(idx){
+  if(!running)return;
+  const h=holes[idx];
+  if(!h.up)return;
+  clearTimeout(h.timeout);
+
+  const rect=h.el.getBoundingClientRect();
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+
+  let pts=0,color='#86efac',symbol='';
+  if(h.type==='gold'){pts=30;color='#fbbf24';symbol='⭐+30';}
+  else if(h.type==='bomb'){pts=-20;color='#f87171';symbol='💣-20';combo=0;}
+  else{pts=10*(1+Math.floor(combo/3));color='#86efac';symbol=pts>10?`🐹+${pts}(콤보!)`:`🐹+${pts}`;}
+
+  if(h.type!=='bomb')combo++;
+  score=Math.max(0,score+pts);
+  document.getElementById('score').textContent=score;
+  document.getElementById('combo').textContent=combo;
+
+  // Hit anim
+  const fx=document.createElement('div');fx.className='hit-anim';fx.textContent='💥';h.el.appendChild(fx);
+  setTimeout(()=>fx.remove(),400);
+
+  // Float popup
+  const pop=document.createElement('div');
+  pop.className='score-popup';pop.textContent=symbol;
+  pop.style.left=cx-40+'px';pop.style.top=cy-30+'px';
+  pop.style.color=color;document.body.appendChild(pop);
+  setTimeout(()=>pop.remove(),700);
+
+  retreat(idx,true);
+}
+
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  score=0;combo=0;timeLeft=60;running=true;
+  document.getElementById('score').textContent='0';
+  document.getElementById('combo').textContent='0';
+  document.getElementById('timer').textContent='60';
+  document.getElementById('timer-bar').style.width='100%';
+  holes.forEach((_,i)=>retreat(i,true));
+  clearInterval(spawnInterval);clearInterval(timerInterval);
+
+  const spawnRate=()=>Math.max(500,1200-(60-timeLeft)*10);
+  let nextSpawn=spawnRate();
+  let elapsed=0;
+  spawnInterval=setInterval(()=>{
+    elapsed+=100;
+    if(elapsed>=nextSpawn){elapsed=0;nextSpawn=spawnRate();spawnMole();}
+  },100);
+
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    document.getElementById('timer').textContent=timeLeft;
+    document.getElementById('timer-bar').style.width=(timeLeft/60*100)+'%';
+    if(timeLeft<=0){clearInterval(timerInterval);clearInterval(spawnInterval);running=false;setTimeout(endGame,500);}
+  },1000);
+}
+
+function endGame(){
+  const modal=document.getElementById('modal');
+  const grade=score>=500?'🏆 천재!':score>=300?'🥇 훌륭해요!':score>=150?'🥈 잘했어요!':'🥉 다시 도전!';
+  modal.innerHTML=`<h2>${grade}</h2><div class="big-score">${score}점</div>
+    <p>최고 연속: ${combo}회</p>
+    <button class="btn" onclick="startGame()">다시 하기</button>
+    <a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+
+buildGrid();
+</script>
+</body>
+</html>

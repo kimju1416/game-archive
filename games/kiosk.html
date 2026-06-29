@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>키오스크 주문 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#0d0800;color:#fff;min-height:100vh;display:flex;flex-direction:column}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#fb923c;text-decoration:none;font-size:14px;font-weight:700}
+.back:hover{opacity:.7}
+.score-box{display:flex;gap:20px;align-items:center}
+.score-lbl{font-size:13px;color:rgba(255,255,255,.5)}
+.score-val{font-size:20px;font-weight:900;color:#fb923c}
+
+.game-area{flex:1;display:grid;grid-template-columns:1fr 320px;gap:0;max-height:calc(100vh - 56px)}
+@media(max-width:700px){.game-area{grid-template-columns:1fr;grid-template-rows:auto auto}}
+
+/* ORDER PANEL */
+.order-panel{background:#0f0a00;border-right:1px solid rgba(255,255,255,.07);padding:20px;overflow-y:auto}
+.order-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:2px;margin-bottom:16px}
+.customer-msg{
+  background:linear-gradient(135deg,#78350f,#92400e);border-radius:12px;
+  padding:14px 18px;margin-bottom:20px;font-size:15px;font-weight:700;line-height:1.6;
+}
+.customer-msg .emoji{font-size:28px;display:block;margin-bottom:6px}
+.want-list{list-style:none;display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.want-list li{background:rgba(255,255,255,.06);border-radius:8px;padding:8px 12px;font-size:14px;display:flex;justify-content:space-between}
+.want-qty{color:#fb923c;font-weight:700}
+
+.answer-area{margin-top:20px}
+.answer-lbl{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:10px}
+.input-row{display:flex;gap:8px;align-items:center}
+.money-input{
+  flex:1;background:#1a1000;border:2px solid rgba(251,146,60,.3);
+  color:#fff;padding:10px 14px;border-radius:10px;font-size:18px;font-weight:700;
+  font-family:inherit;outline:none;
+}
+.money-input:focus{border-color:#fb923c}
+.submit-btn{
+  background:linear-gradient(135deg,#ea580c,#d97706);color:#fff;border:none;
+  padding:11px 20px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.submit-btn:hover{opacity:.85}
+.feedback{margin-top:12px;font-size:15px;font-weight:700;min-height:24px;text-align:center}
+.feedback.ok{color:#4ade80}
+.feedback.ng{color:#f87171}
+
+/* MENU */
+.menu-panel{background:#0a0700;padding:20px;overflow-y:auto}
+.menu-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:2px;margin-bottom:16px}
+.menu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.menu-item{
+  background:#1a1000;border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:14px;text-align:center;cursor:pointer;
+  transition:all .2s;
+}
+.menu-item:hover{border-color:rgba(251,146,60,.5);background:#221500}
+.menu-item .em{font-size:32px;display:block;margin-bottom:6px}
+.menu-item .name{font-size:14px;font-weight:700;margin-bottom:4px}
+.menu-item .price{font-size:15px;font-weight:900;color:#fb923c}
+.cart-section{margin-top:20px}
+.cart-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:2px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.clear-btn{font-size:12px;color:#f87171;background:none;border:none;cursor:pointer;font-family:inherit}
+.cart-items{display:flex;flex-direction:column;gap:6px;min-height:60px}
+.cart-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px;font-size:14px;
+}
+.cart-row-name{display:flex;align-items:center;gap:6px}
+.cart-remove{background:none;border:none;color:#f87171;cursor:pointer;font-size:16px;line-height:1}
+.cart-total{
+  margin-top:14px;padding:12px;background:rgba(251,146,60,.1);border-radius:10px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.total-val{font-size:20px;font-weight:900;color:#fb923c}
+
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);
+  align-items:center;justify-content:center;z-index:50;
+}
+.modal{
+  background:#1a1000;border:1px solid rgba(251,146,60,.4);border-radius:20px;
+  padding:40px;text-align:center;max-width:360px;width:90%;
+}
+.modal h2{font-size:26px;font-weight:900;margin-bottom:12px}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.modal .btn{
+  background:linear-gradient(135deg,#ea580c,#d97706);color:#fff;border:none;
+  padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">🍔 키오스크 주문</span>
+  <div class="score-box">
+    <span class="score-lbl">점수</span>
+    <span class="score-val" id="score">0</span>
+    <span class="score-lbl">/ <span id="round">1</span>라운드</span>
+  </div>
+</div>
+
+<div class="game-area">
+  <div class="order-panel">
+    <div class="order-title">📋 주문 내역</div>
+    <div class="customer-msg" id="customer-msg"></div>
+    <div class="answer-area">
+      <div class="answer-lbl">거스름돈을 입력하세요 (원)</div>
+      <div class="input-row">
+        <input class="money-input" id="money-input" type="number" min="0" placeholder="0" onkeydown="if(event.key==='Enter')checkAnswer()">
+        <button class="submit-btn" onclick="checkAnswer()">확인</button>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+  </div>
+
+  <div class="menu-panel">
+    <div class="menu-title">🍽️ 메뉴판</div>
+    <div class="menu-grid" id="menu-grid"></div>
+    <div class="cart-section">
+      <div class="cart-title">
+        <span>🛒 장바구니</span>
+        <button class="clear-btn" onclick="clearCart()">비우기</button>
+      </div>
+      <div class="cart-items" id="cart-items"><div style="color:rgba(255,255,255,.3);font-size:13px;padding:8px">메뉴를 클릭해 담으세요</div></div>
+      <div class="cart-total">
+        <span style="font-size:14px;font-weight:700">합계</span>
+        <span class="total-val" id="cart-total">0원</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal">
+    <h2 id="modal-title"></h2>
+    <p id="modal-body"></p>
+    <button class="btn" id="modal-btn">다음 라운드</button>
+  </div>
+</div>
+
+<script>
+const MENU=[
+  {em:'🍔',name:'버거',price:5500},
+  {em:'🍟',name:'감자튀김',price:2500},
+  {em:'🥤',name:'음료',price:2000},
+  {em:'🥗',name:'샐러드',price:4000},
+  {em:'🌭',name:'핫도그',price:3000},
+  {em:'🍦',name:'아이스크림',price:1500},
+  {em:'🍗',name:'치킨',price:6000},
+  {em:'🥪',name:'샌드위치',price:4500},
+];
+
+let cart={},score=0,round=1,currentOrder=[],correctChange=0;
+
+function buildMenu(){
+  const g=document.getElementById('menu-grid');
+  g.innerHTML='';
+  MENU.forEach((m,i)=>{
+    const el=document.createElement('div');
+    el.className='menu-item';
+    el.innerHTML=`<span class="em">${m.em}</span><div class="name">${m.name}</div><div class="price">${m.price.toLocaleString()}원</div>`;
+    el.onclick=()=>addCart(i);
+    g.appendChild(el);
+  });
+}
+
+function addCart(i){
+  cart[i]=(cart[i]||0)+1;
+  renderCart();
+}
+
+function removeCart(i){
+  if(cart[i]){cart[i]--;if(!cart[i])delete cart[i];}
+  renderCart();
+}
+
+function clearCart(){cart={};renderCart();}
+
+function renderCart(){
+  const el=document.getElementById('cart-items');
+  const keys=Object.keys(cart);
+  if(!keys.length){el.innerHTML='<div style="color:rgba(255,255,255,.3);font-size:13px;padding:8px">메뉴를 클릭해 담으세요</div>';
+    document.getElementById('cart-total').textContent='0원';return;}
+  el.innerHTML=keys.map(k=>`
+    <div class="cart-row">
+      <div class="cart-row-name">${MENU[k].em} ${MENU[k].name} x${cart[k]}</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="color:#fb923c;font-weight:700">${(MENU[k].price*cart[k]).toLocaleString()}원</span>
+        <button class="cart-remove" onclick="removeCart(${k})">✕</button>
+      </div>
+    </div>`).join('');
+  const total=keys.reduce((s,k)=>s+MENU[k].price*cart[k],0);
+  document.getElementById('cart-total').textContent=total.toLocaleString()+'원';
+}
+
+function genOrder(){
+  const count=Math.min(1+Math.floor(round/2),3);
+  currentOrder=[];
+  const used=[];
+  for(let i=0;i<count;i++){
+    let idx;do{idx=Math.floor(Math.random()*MENU.length)}while(used.includes(idx));
+    used.push(idx);
+    const qty=Math.floor(Math.random()*2)+1;
+    currentOrder.push({...MENU[idx],qty,idx});
+  }
+  const total=currentOrder.reduce((s,o)=>s+o.price*o.qty,0);
+  // Payment: round up to nearest 1000 + random 1000~5000
+  const pay=Math.ceil(total/1000)*1000+Math.floor(Math.random()*5+1)*1000;
+  correctChange=pay-total;
+  const msg=document.getElementById('customer-msg');
+  msg.innerHTML=`<span class="emoji">🧑‍💼</span><strong>${pay.toLocaleString()}원을 드릴게요.</strong>
+    <ul class="want-list">${currentOrder.map(o=>`<li>${o.em} ${o.name} <span class="want-qty">× ${o.qty}</span></li>`).join('')}</ul>
+    <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.5)">결제 금액: <strong style="color:#fb923c">${pay.toLocaleString()}원</strong> | 합계: <strong>${total.toLocaleString()}원</strong></div>`;
+  document.getElementById('feedback').textContent='';
+  document.getElementById('money-input').value='';
+  document.getElementById('money-input').focus();
+}
+
+function checkAnswer(){
+  const val=parseInt(document.getElementById('money-input').value)||0;
+  const fb=document.getElementById('feedback');
+  if(val===correctChange){
+    score+=10;
+    document.getElementById('score').textContent=score;
+    fb.textContent='✅ 정답! +10점';
+    fb.className='feedback ok';
+    setTimeout(()=>{round++;document.getElementById('round').textContent=round;cart={};renderCart();genOrder();},1200);
+  } else {
+    fb.textContent=`❌ 틀렸어요! 정답은 ${correctChange.toLocaleString()}원`;
+    fb.className='feedback ng';
+  }
+}
+
+buildMenu();
+genOrder();
+</script>
+</body>
+</html>

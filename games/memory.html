@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>카드 메모리 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#0d0520;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#a78bfa;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px}
+.back:hover{opacity:.7}
+.game-title{font-size:16px;font-weight:700}
+.info{display:flex;gap:20px}
+.info-item{text-align:center}
+.info-val{font-size:20px;font-weight:900;color:#a78bfa}
+.info-lbl{font-size:11px;color:rgba(255,255,255,.4)}
+
+.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;width:100%}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:520px;width:100%}
+
+.card-wrap{aspect-ratio:1;cursor:pointer;perspective:600px}
+.card-inner{
+  width:100%;height:100%;position:relative;
+  transform-style:preserve-3d;transition:transform .4s;
+}
+.card-wrap.flipped .card-inner,.card-wrap.matched .card-inner{transform:rotateY(180deg)}
+.face{
+  position:absolute;inset:0;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(13px,3vw,18px);font-weight:700;backface-visibility:hidden;
+}
+.front{background:linear-gradient(135deg,#2e1065,#4c1d95);border:2px solid rgba(167,139,250,.3)}
+.front span{font-size:28px}
+.back-face{
+  background:#1e1040;border:2px solid rgba(167,139,250,.5);
+  transform:rotateY(180deg);flex-direction:column;gap:4px;padding:8px;text-align:center;
+}
+.back-face .ko{font-size:clamp(14px,3vw,20px);color:#fff}
+.back-face .en{font-size:clamp(10px,2vw,14px);color:#a78bfa}
+.card-wrap.matched .back-face{background:rgba(74,222,128,.15);border-color:#4ade80}
+
+.result{
+  display:none;flex-direction:column;align-items:center;gap:16px;
+  background:#1a0a3a;border:1px solid rgba(167,139,250,.3);
+  border-radius:20px;padding:40px 48px;text-align:center;
+  position:fixed;inset:0;margin:auto;width:fit-content;height:fit-content;z-index:100;
+}
+.result h2{font-size:28px;font-weight:900}
+.stars{font-size:36px;letter-spacing:4px}
+.result-info{color:rgba(255,255,255,.6);font-size:15px}
+.btn{
+  background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;border:none;
+  padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;
+  cursor:pointer;font-family:inherit;margin-top:8px;
+}
+.btn:hover{opacity:.85}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span class="game-title">🃏 카드 메모리</span>
+  <div class="info">
+    <div class="info-item"><div class="info-val" id="moves">0</div><div class="info-lbl">이동</div></div>
+    <div class="info-item"><div class="info-val" id="timer">0</div><div class="info-lbl">초</div></div>
+    <div class="info-item"><div class="info-val" id="matched">0</div><div class="info-lbl">맞춤</div></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="board" id="board"></div>
+</div>
+
+<div class="result" id="result">
+  <div class="stars" id="stars"></div>
+  <h2>🎉 클리어!</h2>
+  <div class="result-info" id="result-info"></div>
+  <button class="btn" onclick="startGame()">다시 하기</button>
+  <a href="../index.html" class="btn" style="text-decoration:none;display:inline-block;margin-top:0">목록으로</a>
+</div>
+
+<script>
+const WORDS=[
+  ['사과','Apple'],['학교','School'],['사랑','Love'],['음악','Music'],
+  ['하늘','Sky'],['바다','Sea'],['친구','Friend'],['나무','Tree']
+];
+
+let flipped=[],matched=0,moves=0,lock=false,startTime,timerInterval;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function startGame(){
+  clearInterval(timerInterval);
+  flipped=[];matched=0;moves=0;lock=false;
+  document.getElementById('moves').textContent='0';
+  document.getElementById('timer').textContent='0';
+  document.getElementById('matched').textContent='0';
+  document.getElementById('result').style.display='none';
+
+  const pairs=[...WORDS,...WORDS].map((w,i)=>({...Object.fromEntries([['ko',w[0]],['en',w[1]]]),id:i}));
+  shuffle(pairs);
+
+  const board=document.getElementById('board');
+  board.innerHTML='';
+  pairs.forEach((w,i)=>{
+    const wrap=document.createElement('div');
+    wrap.className='card-wrap';
+    wrap.dataset.index=i;
+    wrap.dataset.ko=w.ko;
+    wrap.dataset.en=w.en;
+    wrap.innerHTML=`<div class="card-inner">
+      <div class="face front"><span>🃏</span></div>
+      <div class="face back-face"><div class="ko">${w.ko}</div><div class="en">${w.en}</div></div>
+    </div>`;
+    wrap.addEventListener('click',()=>onFlip(wrap));
+    board.appendChild(wrap);
+  });
+
+  startTime=Date.now();
+  timerInterval=setInterval(()=>{
+    document.getElementById('timer').textContent=Math.floor((Date.now()-startTime)/1000);
+  },500);
+}
+
+function onFlip(card){
+  if(lock||card.classList.contains('flipped')||card.classList.contains('matched'))return;
+  card.classList.add('flipped');
+  flipped.push(card);
+  if(flipped.length===2){
+    moves++;
+    document.getElementById('moves').textContent=moves;
+    lock=true;
+    const[a,b]=flipped;
+    if(a.dataset.ko===b.dataset.ko){
+      a.classList.add('matched');b.classList.add('matched');
+      matched++;
+      document.getElementById('matched').textContent=matched;
+      flipped=[];lock=false;
+      if(matched===WORDS.length)showResult();
+    } else {
+      setTimeout(()=>{
+        a.classList.remove('flipped');b.classList.remove('flipped');
+        flipped=[];lock=false;
+      },900);
+    }
+  }
+}
+
+function showResult(){
+  clearInterval(timerInterval);
+  const sec=Math.floor((Date.now()-startTime)/1000);
+  const stars=moves<=12?'⭐⭐⭐':moves<=18?'⭐⭐':'⭐';
+  document.getElementById('stars').textContent=stars;
+  document.getElementById('result-info').textContent=`${moves}번 이동 · ${sec}초 소요`;
+  document.getElementById('result').style.display='flex';
+}
+
+startGame();
+</script>
+</body>
+</html>

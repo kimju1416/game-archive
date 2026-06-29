@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OX 퀴즈 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#0f0000;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#f87171;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}
+.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#f87171}
+.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:540px;gap:24px}
+
+.progress-dots{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.1);transition:background .3s}
+.dot.ok{background:#4ade80}
+.dot.ng{background:#f87171}
+.dot.cur{background:#fbbf24;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.q-card{
+  background:#1a0000;border:1px solid rgba(248,113,113,.2);border-radius:20px;
+  padding:36px 32px;text-align:center;width:100%;min-height:160px;
+  display:flex;align-items:center;justify-content:center;
+}
+.q-text{font-size:clamp(16px,4vw,22px);font-weight:700;line-height:1.7;color:#fff}
+.q-num{font-size:12px;color:rgba(255,255,255,.3);margin-bottom:12px}
+
+.timer-ring{position:relative;width:60px;height:60px;margin:0 auto}
+.timer-svg{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:5}
+.ring-prog{fill:none;stroke:#f87171;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .9s linear}
+
+.ox-btns{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%}
+.ox-btn{
+  padding:28px 0;border-radius:18px;border:3px solid transparent;
+  font-size:48px;cursor:pointer;font-family:inherit;
+  transition:all .15s;position:relative;overflow:hidden;
+}
+.o-btn{background:rgba(37,99,235,.15);border-color:rgba(37,99,235,.3);color:#60a5fa}
+.o-btn:hover{background:rgba(37,99,235,.25);border-color:#3b82f6;transform:scale(1.02)}
+.x-btn{background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.3);color:#f87171}
+.x-btn:hover{background:rgba(220,38,38,.25);border-color:#ef4444;transform:scale(1.02)}
+.ox-btn.selected-ok{background:rgba(74,222,128,.2)!important;border-color:#4ade80!important}
+.ox-btn.selected-ng{background:rgba(248,113,113,.2)!important;border-color:#f87171!important}
+.ox-lbl{font-size:13px;font-weight:700;margin-top:4px}
+
+.explain-box{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;padding:16px 20px;font-size:14px;color:rgba(255,255,255,.65);
+  line-height:1.7;text-align:center;width:100%;min-height:72px;
+  display:flex;align-items:center;justify-content:center;
+}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#1a0000;border:1px solid rgba(248,113,113,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:10px}
+.big-score{font-size:52px;font-weight:900;color:#f87171;margin:12px 0}
+.result-row{font-size:14px;line-height:2;color:rgba(255,255,255,.6);margin-bottom:20px;text-align:left}
+.result-row .o{color:#4ade80}
+.result-row .x{color:#f87171}
+.btn{background:linear-gradient(135deg,#991b1b,#dc2626);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">❓ OX 퀴즈</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="correct-cnt">0</div><div class="stat-l">정답</div></div>
+  </div>
+</div>
+
+<div class="game-wrap">
+  <div class="progress-dots" id="progress-dots"></div>
+  <div class="q-card">
+    <div>
+      <div class="q-num" id="q-num">1 / 10</div>
+      <div class="q-text" id="q-text">?</div>
+    </div>
+  </div>
+  <div class="timer-ring">
+    <svg class="timer-svg" viewBox="0 0 60 60" width="60" height="60">
+      <circle class="ring-bg" cx="30" cy="30" r="26"/>
+      <circle class="ring-prog" id="ring" cx="30" cy="30" r="26" stroke-dasharray="163" stroke-dashoffset="0"/>
+    </svg>
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900" id="timer-num">10</div>
+  </div>
+  <div class="ox-btns">
+    <button class="ox-btn o-btn" onclick="pick(true)">⭕<div class="ox-lbl">맞다</div></button>
+    <button class="ox-btn x-btn" onclick="pick(false)">❌<div class="ox-lbl">틀리다</div></button>
+  </div>
+  <div class="explain-box" id="explain">정답을 선택하면 해설이 나타납니다.</div>
+</div>
+
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>❓ OX 퀴즈</h2>
+    <p>과학·역사·상식에 관한 10가지 문제!<br>O(맞다) 또는 X(틀리다)로 답하세요.</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+
+<script>
+const QS=[
+  {q:'빛의 속도는 소리의 속도보다 빠르다.',a:true,exp:'빛은 초당 약 30만 km, 소리는 초당 약 340m로 빛이 약 88만 배 빠릅니다.'},
+  {q:'지구에서 가장 큰 바다는 대서양이다.',a:false,exp:'가장 큰 바다는 태평양입니다. 지구 표면의 약 30%를 차지합니다.'},
+  {q:'인간의 뼈는 태어날 때보다 어른이 되면 그 수가 줄어든다.',a:true,exp:'갓난아기는 약 300개, 성인은 206개로 뼈가 합쳐지면서 줄어듭니다.'},
+  {q:'다이아몬드는 탄소로 만들어진다.',a:true,exp:'다이아몬드는 순수한 탄소 원자가 격자 구조를 이루며 결합된 물질입니다.'},
+  {q:'호주는 북반구에 위치한다.',a:false,exp:'호주는 남반구에 있어 우리와 계절이 반대입니다. 12월이 여름입니다.'},
+  {q:'문어는 심장이 3개다.',a:true,exp:'문어는 전신에 혈액을 공급하는 심장 1개와 아가미용 심장 2개로 총 3개입니다.'},
+  {q:'세계에서 가장 높은 산은 에베레스트산이다.',a:true,exp:'에베레스트는 해발 8,849m로 세계 최고봉입니다. 네팔과 중국 국경에 있습니다.'},
+  {q:'피카소는 네덜란드 출신 화가다.',a:false,exp:'파블로 피카소는 스페인 말라가 출신입니다. 네덜란드 화가는 반 고흐입니다.'},
+  {q:'사람의 혀에는 미각 세포가 약 1만 개 있다.',a:true,exp:'성인 혀의 맛봉오리는 약 1만 개이며 단맛·짠맛·신맛·쓴맛·감칠맛을 감지합니다.'},
+  {q:'물은 섭씨 0도에서 끓는다.',a:false,exp:'물은 섭씨 100도(1기압 기준)에서 끓습니다. 0도는 어는 점입니다.'},
+  {q:'한국 최초의 금속활자는 고려시대에 만들어졌다.',a:true,exp:'고려 시대인 13세기에 세계 최초의 금속활자가 만들어졌습니다.'},
+  {q:'지구의 자전 방향은 서에서 동이다.',a:true,exp:'지구는 서→동(반시계방향)으로 자전하므로 태양이 동쪽에서 뜨고 서쪽으로 집니다.'},
+];
+
+let qNum=0,score=0,correctCnt=0,qs=[],locked=false,timerInterval,timeLeft;
+const TOTAL=10;
+
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+
+function buildDots(){
+  const el=document.getElementById('progress-dots');
+  el.innerHTML='';
+  for(let i=0;i<TOTAL;i++){const d=document.createElement('div');d.className='dot'+(i===0?' cur':'');d.id=`dot-${i}`;el.appendChild(d);}
+}
+
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;correctCnt=0;locked=false;
+  document.getElementById('score').textContent='0';
+  document.getElementById('correct-cnt').textContent='0';
+  qs=shuffle([...QS]).slice(0,TOTAL);
+  buildDots();
+  nextQ();
+}
+
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  locked=false;
+  const q=qs[qNum];
+  document.getElementById('q-num').textContent=`${qNum+1} / ${TOTAL}`;
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('explain').textContent='정답을 선택하면 해설이 나타납니다.';
+  document.querySelectorAll('.ox-btn').forEach(b=>{b.className=b.className.replace(/selected-\w+/g,'').trim();});
+
+  // timer
+  clearInterval(timerInterval);timeLeft=10;
+  document.getElementById('timer-num').textContent=10;
+  document.getElementById('ring').style.strokeDashoffset=0;
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    document.getElementById('timer-num').textContent=timeLeft;
+    document.getElementById('ring').style.strokeDashoffset=(163*(10-timeLeft)/10)+'';
+    if(timeLeft<=0){clearInterval(timerInterval);if(!locked)pick(null);}
+  },1000);
+}
+
+function pick(val){
+  if(locked)return;locked=true;clearInterval(timerInterval);
+  const q=qs[qNum];
+  const correct=val===q.a;
+  if(correct){score+=10;correctCnt++;document.getElementById('score').textContent=score;document.getElementById('correct-cnt').textContent=correctCnt;}
+  document.getElementById('dot-'+qNum).className='dot '+(correct?'ok':'ng');
+  const btns=document.querySelectorAll('.ox-btn');
+  if(val===true)btns[0].classList.add(correct?'selected-ok':'selected-ng');
+  else if(val===false)btns[1].classList.add(correct?'selected-ok':'selected-ng');
+  if(!correct){
+    const correctBtn=q.a===true?btns[0]:btns[1];
+    correctBtn.classList.add('selected-ok');
+  }
+  document.getElementById('explain').textContent=(correct?'✅ 정답! ':'❌ 오답! ')+q.exp;
+  qNum++;
+  if(qNum<TOTAL)document.getElementById('dot-'+qNum).className='dot cur';
+  setTimeout(nextQ,2000);
+}
+
+function endGame(){
+  const modal=document.getElementById('modal');
+  const stars=correctCnt>=9?'⭐⭐⭐':correctCnt>=7?'⭐⭐':correctCnt>=5?'⭐':'';
+  modal.innerHTML=`<h2>🎉 완료! ${stars}</h2><div class="big-score">${score}점</div>
+    <p>${TOTAL}문제 중 ${correctCnt}개 정답</p>
+    <button class="btn" onclick="startGame()">다시 하기</button>
+    <a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

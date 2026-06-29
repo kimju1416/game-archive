@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>색깔 스트룹 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#0f0015;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#e879f9;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}
+.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#e879f9}
+.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:480px;gap:32px}
+
+.instruct{
+  background:rgba(232,121,249,.08);border:1px solid rgba(232,121,249,.2);
+  border-radius:12px;padding:14px 20px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.7;text-align:center;
+}
+.instruct strong{color:#e879f9}
+
+.word-display{
+  font-size:clamp(52px,12vw,80px);font-weight:900;
+  text-align:center;min-height:100px;display:flex;align-items:center;justify-content:center;
+  text-shadow:0 0 40px currentColor;
+  transition:opacity .15s;
+}
+
+.progress{font-size:14px;color:rgba(255,255,255,.4);text-align:center}
+
+.color-btns{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%}
+.color-btn{
+  padding:20px;border-radius:16px;border:2px solid transparent;
+  font-size:20px;font-weight:900;cursor:pointer;font-family:inherit;
+  transition:transform .1s,opacity .15s;color:#fff;
+}
+.color-btn:hover{transform:scale(1.03)}
+.color-btn:active{transform:scale(.97)}
+.color-btn.correct{animation:pulse-ok .3s ease}
+.color-btn.wrong{animation:shake .3s ease}
+@keyframes pulse-ok{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+.feedback-bar{height:6px;border-radius:999px;width:100%;background:rgba(255,255,255,.08);overflow:hidden}
+.feedback-fill{height:100%;border-radius:999px;transition:width .2s}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#1a0025;border:1px solid rgba(232,121,249,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:360px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:10px}
+.big-score{font-size:52px;font-weight:900;color:#e879f9;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#9d174d,#be185d);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">🎨 색깔 스트룹</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="q-num">0</div><div class="stat-l">/ 20</div></div>
+    <div class="stat"><div class="stat-v" id="streak">0</div><div class="stat-l">연속</div></div>
+  </div>
+</div>
+
+<div class="game-wrap">
+  <div class="instruct">글자의 <strong>색깔</strong>을 고르세요! (단어의 뜻이 아니에요)</div>
+  <div class="word-display" id="word-display">?</div>
+  <div class="progress" id="progress">문제 0 / 20</div>
+  <div class="color-btns" id="color-btns"></div>
+  <div class="feedback-bar"><div class="feedback-fill" id="fb-fill" style="width:0%;background:#e879f9"></div></div>
+</div>
+
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>🌈 색깔 스트룹</h2>
+    <p>단어의 <strong>뜻</strong>이 아닌,<br>글자의 <strong>잉크 색깔</strong>을 골라야 해요.<br>뇌가 혼란스러워질 거예요!</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+
+<script>
+const COLORS=[
+  {name:'빨강',hex:'#ef4444'},
+  {name:'파랑',hex:'#3b82f6'},
+  {name:'초록',hex:'#22c55e'},
+  {name:'노랑',hex:'#eab308'},
+  {name:'보라',hex:'#a855f7'},
+  {name:'주황',hex:'#f97316'},
+];
+
+let qNum=0,score=0,streak=0,locked=false;
+const TOTAL=20;
+
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;streak=0;
+  document.getElementById('score').textContent='0';
+  document.getElementById('streak').textContent='0';
+  nextQ();
+}
+
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  locked=false;qNum++;
+  document.getElementById('q-num').textContent=qNum;
+  document.getElementById('progress').textContent=`문제 ${qNum} / ${TOTAL}`;
+
+  // Word (meaning) and ink color are different
+  const wordColor=COLORS[Math.floor(Math.random()*COLORS.length)];
+  let inkColor;
+  do{inkColor=COLORS[Math.floor(Math.random()*COLORS.length)]}while(inkColor===wordColor);
+
+  const wd=document.getElementById('word-display');
+  wd.textContent=wordColor.name;
+  wd.style.color=inkColor.hex;
+
+  // Shuffle 4 choices: correct ink + 3 others
+  const others=COLORS.filter(c=>c!==inkColor).sort(()=>Math.random()-.5).slice(0,3);
+  const opts=shuffle([inkColor,...others]);
+
+  const btns=document.getElementById('color-btns');
+  btns.innerHTML='';
+  opts.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='color-btn';
+    btn.textContent=c.name;
+    btn.style.background=c.hex+'33';
+    btn.style.borderColor=c.hex+'66';
+    btn.style.color=c.hex;
+    btn.onclick=()=>pick(btn,c===inkColor,inkColor.hex);
+    btns.appendChild(btn);
+  });
+}
+
+function pick(btn,correct,correctHex){
+  if(locked)return;locked=true;
+  if(correct){
+    btn.classList.add('correct');
+    streak++;score+=10+(streak>2?5:0);
+    document.getElementById('score').textContent=score;
+    document.getElementById('streak').textContent=streak;
+    animFb(correctHex,score/((TOTAL)*15)*100);
+    setTimeout(nextQ,500);
+  } else {
+    btn.classList.add('wrong');streak=0;
+    document.getElementById('streak').textContent='0';
+    document.querySelectorAll('.color-btn').forEach(b=>{
+      if(b.style.color===correctHex)b.classList.add('correct');
+    });
+    setTimeout(nextQ,800);
+  }
+}
+
+function animFb(color,pct){
+  const f=document.getElementById('fb-fill');
+  f.style.background=color;f.style.width=Math.min(pct,100)+'%';
+}
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function endGame(){
+  const pct=Math.round(score/(TOTAL*10)*100);
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>🎉 완료!</h2><div class="big-score">${score}점</div>
+    <p>${TOTAL}문제 중 ${Math.floor(score/10)}개 정답 (${pct}%)<br>최고 연속: ${streak}회</p>
+    <button class="btn" onclick="startGame()">다시 하기</button>
+    <a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

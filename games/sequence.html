@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>숫자 기억 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#05050f;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#818cf8;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}
+.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#818cf8}
+.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:440px;gap:28px}
+
+.display-box{
+  background:#0d0d2e;border:2px solid rgba(129,140,248,.25);border-radius:20px;
+  padding:40px 32px;text-align:center;width:100%;min-height:140px;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;
+}
+.display-nums{
+  font-size:clamp(32px,10vw,52px);font-weight:900;letter-spacing:12px;
+  color:#818cf8;text-shadow:0 0 30px rgba(129,140,248,.5);
+  min-height:60px;display:flex;align-items:center;
+}
+.display-status{font-size:14px;color:rgba(255,255,255,.4)}
+
+/* number pad */
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:300px}
+.num-btn{
+  aspect-ratio:1;border-radius:14px;background:#0d0d2e;border:2px solid rgba(129,140,248,.2);
+  font-size:24px;font-weight:900;color:#fff;cursor:pointer;font-family:inherit;
+  transition:all .12s;
+}
+.num-btn:hover{background:#1a1a4e;border-color:rgba(129,140,248,.5)}
+.num-btn:active{transform:scale(.93)}
+.num-btn.del{font-size:18px;color:#f87171;border-color:rgba(248,113,113,.3)}
+.num-btn.ok{background:linear-gradient(135deg,#3730a3,#4338ca);border-color:#818cf8;font-size:16px}
+.num-btn.ok:hover{opacity:.85}
+
+.answer-display{
+  font-size:32px;font-weight:900;letter-spacing:8px;min-height:48px;
+  color:#fff;text-align:center;border-bottom:2px solid rgba(129,140,248,.3);
+  padding-bottom:8px;width:100%;max-width:300px;
+}
+.answer-display .cursor{animation:blink .8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#080820;border:1px solid rgba(129,140,248,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:360px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:10px}
+.big-score{font-size:52px;font-weight:900;color:#818cf8;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#3730a3,#4338ca);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">🔢 숫자 기억</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="level">1</div><div class="stat-l">레벨</div></div>
+    <div class="stat"><div class="stat-v" id="digits">3</div><div class="stat-l">자리수</div></div>
+    <div class="stat"><div class="stat-v" id="best">0</div><div class="stat-l">최고</div></div>
+  </div>
+</div>
+
+<div class="game-wrap">
+  <div class="display-box">
+    <div class="display-nums" id="display-nums">?</div>
+    <div class="display-status" id="display-status">게임을 시작하세요</div>
+  </div>
+  <div class="answer-display" id="answer-display"><span class="cursor">|</span></div>
+  <div class="numpad" id="numpad"></div>
+</div>
+
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>🔢 숫자 기억</h2>
+    <p>화면에 잠깐 나타나는 숫자를 외워서 입력하세요.<br>맞출수록 자릿수가 늘어납니다!</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+
+<script>
+let level=1,digits=3,best=0,current='',answer='',phase='idle';
+
+function buildPad(){
+  const pad=document.getElementById('numpad');
+  pad.innerHTML='';
+  [1,2,3,4,5,6,7,8,9,'←',0,'✓'].forEach(v=>{
+    const btn=document.createElement('button');
+    btn.className='num-btn'+(v==='←'?' del':v==='✓'?' ok':'');
+    btn.textContent=v;
+    btn.onclick=()=>padPress(v);
+    pad.appendChild(btn);
+  });
+}
+
+function padPress(v){
+  if(phase!=='input')return;
+  if(v==='←'){answer=answer.slice(0,-1);}
+  else if(v==='✓'){checkAnswer();return;}
+  else if(answer.length<digits){answer+=v;}
+  updateAnswerDisplay();
+}
+
+function updateAnswerDisplay(){
+  const el=document.getElementById('answer-display');
+  el.innerHTML=answer+'<span class="cursor">|</span>';
+}
+
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  level=1;digits=3;answer='';
+  document.getElementById('level').textContent='1';
+  document.getElementById('digits').textContent='3';
+  showRound();
+}
+
+function showRound(){
+  phase='show';answer='';
+  document.getElementById('answer-display').innerHTML='<span class="cursor">|</span>';
+  // Generate random sequence
+  current='';
+  for(let i=0;i<digits;i++)current+=Math.floor(Math.random()*10);
+
+  const el=document.getElementById('display-nums');
+  const st=document.getElementById('display-status');
+
+  // Show countdown then number
+  st.textContent='준비...';el.textContent='';
+  let t=3;
+  const cd=setInterval(()=>{
+    el.textContent=t>0?t:'';
+    if(t===0){clearInterval(cd);showNumber();}
+    t--;
+  },700);
+}
+
+function showNumber(){
+  const el=document.getElementById('display-nums');
+  const st=document.getElementById('display-status');
+  el.textContent=current;
+  st.textContent=`${digits}자리 숫자를 기억하세요!`;
+  const showTime=1000+digits*300;
+  setTimeout(()=>{
+    el.textContent='?';
+    st.textContent='입력하세요';
+    phase='input';
+    document.getElementById('answer-display').innerHTML='<span class="cursor">|</span>';
+  },showTime);
+}
+
+function checkAnswer(){
+  if(answer.length<digits){return;}
+  phase='check';
+  const el=document.getElementById('display-nums');
+  const st=document.getElementById('display-status');
+  if(answer===current){
+    el.textContent='✅';
+    st.textContent='정답!';
+    level++;digits=Math.min(digits+1,10);
+    if(level-1>best){best=level-1;document.getElementById('best').textContent=best;}
+    document.getElementById('level').textContent=level;
+    document.getElementById('digits').textContent=digits;
+    setTimeout(showRound,1000);
+  } else {
+    el.textContent='❌';
+    st.textContent=`정답: ${current}`;
+    setTimeout(()=>endGame(),1200);
+  }
+}
+
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>💀 게임 오버!</h2><div class="big-score">레벨 ${level}</div>
+    <p>최고 레벨: ${Math.max(level,best)}<br>${digits-1}자리까지 기억했어요!</p>
+    <button class="btn" onclick="startGame()">다시 하기</button>
+    <a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+
+buildPad();
+</script>
+</body>
+</html>

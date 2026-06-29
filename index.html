@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학습 게임 아카이브</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#08080f;color:#fff;min-height:100vh}
+
+/* HERO */
+.hero{
+  padding:80px 20px 70px;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(160deg,#08080f 0%,#0f0822 50%,#080f22 100%);
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(124,58,237,.18) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);
+  color:#a78bfa;padding:6px 18px;border-radius:999px;
+  font-size:12px;font-weight:700;letter-spacing:2px;margin-bottom:28px;
+}
+h1{
+  font-size:clamp(36px,6vw,64px);font-weight:900;line-height:1.15;
+  margin-bottom:20px;
+  background:linear-gradient(135deg,#fff 20%,#a78bfa 60%,#f472b6 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{font-size:17px;color:rgba(255,255,255,.5);line-height:1.7}
+.stats{
+  display:flex;gap:48px;justify-content:center;margin-top:44px;flex-wrap:wrap;
+}
+.stat-num{font-size:34px;font-weight:900;color:#a78bfa}
+.stat-lbl{font-size:12px;color:rgba(255,255,255,.4);margin-top:4px}
+
+/* GRID */
+.section{max-width:1180px;margin:0 auto;padding:60px 20px 80px}
+.section-hd{
+  font-size:20px;font-weight:700;color:rgba(255,255,255,.7);
+  margin-bottom:32px;display:flex;align-items:center;gap:10px;
+}
+.section-hd::after{
+  content:'';flex:1;height:1px;background:rgba(255,255,255,.07);
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:20px;
+}
+
+/* CARD */
+.card{
+  display:block;text-decoration:none;color:inherit;
+  background:#111120;border:1px solid rgba(255,255,255,.07);
+  border-radius:18px;overflow:hidden;
+  transition:transform .25s,box-shadow .25s,border-color .25s;
+}
+.card:hover{
+  transform:translateY(-8px);
+  border-color:rgba(167,139,250,.3);
+  box-shadow:0 24px 64px rgba(124,58,237,.15);
+}
+.card-banner{
+  height:130px;display:flex;align-items:center;justify-content:center;
+  font-size:56px;position:relative;overflow:hidden;
+}
+.card-banner::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to bottom,transparent 40%,rgba(17,17,32,.9) 100%);
+}
+.card-body{padding:20px 20px 22px}
+.tags{display:flex;gap:8px;margin-bottom:13px;flex-wrap:wrap}
+.tag{
+  padding:3px 11px;border-radius:999px;
+  font-size:11px;font-weight:700;
+}
+.tag-cat{background:rgba(167,139,250,.12);color:#c4b5fd}
+.tag-easy{background:rgba(74,222,128,.1);color:#4ade80}
+.tag-mid{background:rgba(250,204,21,.1);color:#facc15}
+.tag-hard{background:rgba(248,113,113,.1);color:#f87171}
+.card-title{font-size:20px;font-weight:800;margin-bottom:8px}
+.card-desc{font-size:13.5px;color:rgba(255,255,255,.45);line-height:1.65;margin-bottom:18px}
+.card-foot{display:flex;align-items:center;justify-content:space-between}
+.dots{display:flex;gap:5px}
+.dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.1)}
+.dot.on{background:#a78bfa}
+.play-btn{
+  background:linear-gradient(135deg,#7c3aed,#db2777);
+  color:#fff;border:none;padding:9px 22px;border-radius:999px;
+  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+  transition:opacity .2s;
+}
+.play-btn:hover{opacity:.85}
+
+/* FOOTER */
+footer{
+  text-align:center;padding:40px 20px;
+  color:rgba(255,255,255,.2);font-size:13px;
+  border-top:1px solid rgba(255,255,255,.05);
+}
+
+/* STARS BG */
+.stars{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.star{
+  position:absolute;background:#fff;border-radius:50%;
+  animation:twinkle 3s ease-in-out infinite;
+}
+@keyframes twinkle{0%,100%{opacity:.2}50%{opacity:.8}}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="stars" id="stars"></div>
+  <div style="position:relative;z-index:1">
+    <div class="hero-chip">🎮 EDUCATIONAL GAME ARCHIVE</div>
+    <h1>학습 게임<br>아카이브</h1>
+    <p class="hero-sub">재미있게 배우는 10가지 학습 게임 모음<br>플레이하면서 자연스럽게 실력을 키워보세요</p>
+    <div class="stats">
+      <div><div class="stat-num">10</div><div class="stat-lbl">게임</div></div>
+      <div><div class="stat-num">무료</div><div class="stat-lbl">이용</div></div>
+      <div><div class="stat-num">즉시</div><div class="stat-lbl">시작</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-hd">🕹️ 게임 목록</div>
+  <div class="grid">
+
+    <a href="games/memory.html" class="card">
+      <div class="card-banner" style="background:linear-gradient(135deg,#1e0050,#4c1d95)">🃏</div>
+      <div class="card-body">
+        <div class="tags"><span class="tag tag-cat">기억력</span><span class="tag tag-easy">초급</span></div>
+        <div class="card-title">카드 메모리</div>
+        <div class="card-desc">카드를 뒤집어 한국어-영어 단어 쌍을 찾는 기억력 게임. 최소 이동으로 클리어하면 별 3개!</div>
+        <div class="card-foot">
+          <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+          <button class="play-btn">플레이 ▶</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="games/kiosk.html" class="card">
+      <div class="card-banner" style="background:linear-gradient(135deg,#3b1a00,#92400e)">🍔</div>
+      <div class="card-body">
+        <div class="tags"><span class="tag tag-cat">수학</span><span class="tag tag-easy">초급</span></div>
+        <div class="card-title">키오스크 주문</div>
+        <div class="card-desc">패스트푸드 키오스크에서 주문을 받고 거스름돈을 계산하는 실생활 수학 게임.</div>
+        <div class="card-foot">
+          <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+          <button class="play-btn">플레이 ▶</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="games/typing.html" class="card">
+      <div class="card-banner" style="background:linear-gradient(135deg,#001a10,#065f46)">⌨️</div>
+      <div class="card-body">
+        <div class="tags"><span class="tag tag-cat">타이핑</span><span class="tag tag-mid">중급</span></div>
+        <div class="card-title">낙하 타이핑</div>
+        <div class="card-desc">화면 위에서 떨어지는 단어를 빠르게 타이핑해서 없애세요. 속도가 점점 빨라집니다!</div>
+        <div class="card-foot">
+          <div class="dots"><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
+          <button class="play-btn">플레이 ▶</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="games/math.html" class="card">
+      <div class="card-banner" style="background:linear-gradient(135deg,#0a1628,#1d4ed8)">⚡</div>
+      <div class="card-body">
+        <div class="tags"><span class="tag tag-cat">수학</span><span class="tag tag-mid">중급</span></div>
+        <div class="card-title">번개 수학</div>
+        <div class="card-desc">제한 시간 안에 사칙연산 문제를 최대한 많이 풀어보세요. 4지선다 속도 대결!</div>
+        <div class="card-foot">
+          <div class="dots"><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
+          <button class="play-btn">플레이 ▶</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="games/stroop.html" class="card">
+      <div class="card-banner" style="background:linear-gradient(135deg,#2d0a1a,#9d174d)">🎨</div>
+      <div class="card-body">
+        <div class="tags"><span class="tag tag-cat">집중력</span><span class="tag tag-mid">중급</span></div>
+        <div class="card-title">색깔 스트룹</div>
+        <div class="card-desc">단어의 뜻이 아닌 글자 색깔을 골라야 하는 착각 게임. 뇌를 혼란스럽게 하는 심리 실험!</div>
+        <div class="card-foot">
+          <div class="dots"><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
+          <button class="play-btn">플레이 ▶</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="games/scramble.html" class="card">
+      <div class="card-banner" style="background:linear-gradient(135deg,#001a1a,#0f766e)">🔤</div>
+      <div class="card-body">
+        <div class="tags"><span class="tag tag-cat">어휘</span><span class="tag tag-easy">초급</span></div>
+        <div class="card-title">단어 퍼즐</div>
+        <div class="card-desc">뒤죽박죽 섞인 영어 단어를 올바르게 맞춰보세요. 힌트를 쓰면 점수가 깎여요!</div>
+        <div class="card-foot">
+          <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+          <button class="play-btn">플레이 ▶</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="games/capitals.html" class="card">
+      <div class="card-banner" style="background:linear-gradient(135deg,#001a08,#166534)">🌍</div>
+      <div class="card-body">
+        <div class="tags"><span class="tag tag-cat">지리</span><span class="tag tag-mid">중급</span></div>
+        <div class="card-title">세계 수도 퀴즈</div>
+        <div class="card-desc">세계 각국의 수도를 맞혀보는 4지선다 퀴즈. 10문제로 지리 지식을 테스트하세요!</div>
+        <div class="card-foot">
+          <div class="dots"><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
+          <button class="play-btn">플레이 ▶</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="games/sequence.html" class="card">
+      <div class="card-banner" style="background:linear-gradient(135deg,#0d0a2e,#3730a3)">🔢</div>
+      <div class="card-body">
+        <div class="tags"><span class="tag tag-cat">기억력</span><span class="tag tag-hard">고급</span></div>
+        <div class="card-title">숫자 기억</div>
+        <div class="card-desc">화면에 잠깐 보여주는 숫자 배열을 외워서 따라 입력하세요. 자릿수가 점점 늘어납니다!</div>
+        <div class="card-foot">
+          <div class="dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+          <button class="play-btn">플레이 ▶</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="games/oxquiz.html" class="card">
+      <div class="card-banner" style="background:linear-gradient(135deg,#1a0000,#991b1b)">❓</div>
+      <div class="card-body">
+        <div class="tags"><span class="tag tag-cat">상식</span><span class="tag tag-easy">초급</span></div>
+        <div class="card-title">OX 퀴즈</div>
+        <div class="card-desc">과학·역사·상식 등 다양한 주제의 참/거짓 퀴즈 10문제. 해설도 함께 배워가세요!</div>
+        <div class="card-foot">
+          <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+          <button class="play-btn">플레이 ▶</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="games/mole.html" class="card">
+      <div class="card-banner" style="background:linear-gradient(135deg,#0a1a00,#3f6212)">🔨</div>
+      <div class="card-body">
+        <div class="tags"><span class="tag tag-cat">반응속도</span><span class="tag tag-mid">중급</span></div>
+        <div class="card-title">두더지 잡기</div>
+        <div class="card-desc">땅 속에서 올라오는 두더지를 빠르게 잡으세요! 폭탄을 잘못 치면 점수가 깎입니다.</div>
+        <div class="card-foot">
+          <div class="dots"><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
+          <button class="play-btn">플레이 ▶</button>
+        </div>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+<footer>
+  <p>학습 게임 아카이브 · 재미있게 배우자! 🎓</p>
+</footer>
+
+<script>
+// Starfield
+const s=document.getElementById('stars');
+for(let i=0;i<80;i++){
+  const el=document.createElement('div');
+  el.className='star';
+  const sz=Math.random()*2+1;
+  el.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*4}s;animation-duration:${2+Math.random()*3}s`;
+  s.appendChild(el);
+}
+</script>
+</body>
+</html>

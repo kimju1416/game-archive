@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>낙하 타이핑 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#000d08;color:#fff;min-height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07);z-index:10;position:relative}
+.back{color:#4ade80;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:24px}
+.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#4ade80}
+.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+.hearts{font-size:20px;letter-spacing:2px}
+
+#arena{flex:1;position:relative;overflow:hidden;background:linear-gradient(to bottom,#000d08,#001a10)}
+
+/* grid lines */
+#arena::before{
+  content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(74,222,128,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(74,222,128,.04) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+.danger-line{position:absolute;bottom:70px;left:0;right:0;height:2px;background:rgba(248,113,113,.4)}
+.danger-line::before{content:'위험선';position:absolute;right:10px;top:-18px;font-size:11px;color:rgba(248,113,113,.6)}
+
+.word-el{
+  position:absolute;
+  background:rgba(4,120,87,.6);border:1px solid rgba(74,222,128,.4);
+  border-radius:8px;padding:6px 14px;
+  font-size:18px;font-weight:700;white-space:nowrap;
+  transition:background .15s;
+  text-shadow:0 0 12px rgba(74,222,128,.6);
+}
+.word-el.hit{background:rgba(74,222,128,.5)!important;border-color:#4ade80}
+
+.input-area{
+  padding:16px 24px;background:rgba(0,0,0,.5);border-top:1px solid rgba(74,222,128,.15);
+  display:flex;gap:12px;align-items:center;z-index:10;position:relative;
+}
+#word-input{
+  flex:1;background:rgba(74,222,128,.08);border:2px solid rgba(74,222,128,.3);
+  color:#fff;padding:12px 18px;border-radius:12px;font-size:18px;font-weight:700;
+  font-family:inherit;outline:none;
+}
+#word-input:focus{border-color:#4ade80}
+#word-input::placeholder{color:rgba(255,255,255,.2);font-weight:400}
+
+.overlay{
+  display:none;position:absolute;inset:0;background:rgba(0,0,0,.85);
+  align-items:center;justify-content:center;z-index:20;flex-direction:column;gap:16px;
+}
+.overlay.show{display:flex}
+.modal{background:#001a10;border:1px solid rgba(74,222,128,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:360px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:10px}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">⌨️ 낙하 타이핑</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="level">1</div><div class="stat-l">레벨</div></div>
+    <div class="stat"><div class="hearts" id="hearts">❤️❤️❤️</div></div>
+  </div>
+</div>
+
+<div id="arena">
+  <div class="danger-line"></div>
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2 id="modal-title">🎮 게임 시작</h2>
+      <p id="modal-body">단어가 떨어지기 전에 타이핑해서 없애세요!<br>바닥에 닿으면 목숨을 잃습니다.</p>
+      <button class="btn" onclick="startGame()">시작하기</button>
+      <a href="../index.html" class="btn-out">목록으로</a>
+    </div>
+  </div>
+</div>
+<div class="input-area">
+  <input id="word-input" placeholder="단어를 입력하고 Enter..." autocomplete="off" onkeydown="handleKey(event)" disabled>
+</div>
+
+<script>
+const WORDS=['apple','banana','cherry','dragon','flower','garden','happy','island','jungle','kite','lemon','music','night','ocean','pizza','queen','river','school','tiger','violin','water','yellow','zebra','cloud','dream','earth','focus','grace','honey','ivory'];
+
+let lives=3,score=0,level=1,wordCount=0,interval=null,falling=[],raf=null,speed=0.6,running=false;
+
+const arena=document.getElementById('arena');
+
+function getArenaH(){return arena.clientHeight}
+
+function spawnWord(){
+  const w=WORDS[Math.floor(Math.random()*WORDS.length)];
+  const el=document.createElement('div');
+  el.className='word-el';
+  el.textContent=w;
+  const x=Math.random()*(arena.clientWidth-120);
+  el.style.left=x+'px';
+  el.style.top='-40px';
+  arena.appendChild(el);
+  falling.push({el,word:w,y:-40});
+  wordCount++;
+  if(wordCount%8===0){level++;document.getElementById('level').textContent=level;speed=Math.min(0.6+level*0.15,2.5);}
+}
+
+function tick(){
+  if(!running)return;
+  const limit=getArenaH()-70;
+  falling=falling.filter(f=>{
+    f.y+=speed;
+    f.el.style.top=f.y+'px';
+    if(f.y>=limit){
+      f.el.remove();
+      loseLife();
+      return false;
+    }
+    return true;
+  });
+  raf=requestAnimationFrame(tick);
+}
+
+function loseLife(){
+  lives--;
+  const h=['❤️❤️❤️','❤️❤️🖤','❤️🖤🖤','🖤🖤🖤'];
+  document.getElementById('hearts').textContent=h[3-lives]||h[0];
+  if(lives<=0)endGame();
+}
+
+function handleKey(e){
+  if(e.key!=='Enter')return;
+  const val=document.getElementById('word-input').value.trim().toLowerCase();
+  document.getElementById('word-input').value='';
+  const idx=falling.findIndex(f=>f.word===val);
+  if(idx!==-1){
+    const f=falling[idx];
+    f.el.classList.add('hit');
+    setTimeout(()=>f.el.remove(),200);
+    falling.splice(idx,1);
+    score+=10+level*2;
+    document.getElementById('score').textContent=score;
+  }
+}
+
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  lives=3;score=0;level=1;wordCount=0;speed=0.6;running=true;
+  falling.forEach(f=>f.el.remove());falling=[];
+  document.getElementById('score').textContent='0';
+  document.getElementById('level').textContent='1';
+  document.getElementById('hearts').textContent='❤️❤️❤️';
+  document.getElementById('word-input').disabled=false;
+  document.getElementById('word-input').focus();
+  clearInterval(interval);
+  interval=setInterval(spawnWord,2200);
+  cancelAnimationFrame(raf);
+  raf=requestAnimationFrame(tick);
+}
+
+function endGame(){
+  running=false;
+  clearInterval(interval);
+  cancelAnimationFrame(raf);
+  document.getElementById('word-input').disabled=true;
+  document.getElementById('modal-title').textContent='💀 게임 오버!';
+  document.getElementById('modal-body').textContent=`최종 점수: ${score}점 · 레벨 ${level}`;
+  document.getElementById('overlay').classList.add('show');
+}
+
+document.getElementById('overlay').classList.add('show');
+</script>
+</body>
+</html>

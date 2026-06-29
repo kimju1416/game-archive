@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>단어 퍼즐 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#000f0f;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#2dd4bf;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}
+.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#2dd4bf}
+.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:500px;gap:28px}
+
+.hint-box{font-size:15px;color:rgba(255,255,255,.5);text-align:center;line-height:1.7}
+.hint-box .hint-ko{font-size:20px;font-weight:700;color:#2dd4bf}
+
+/* Letter tiles */
+.tiles{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;min-height:64px}
+.tile{
+  width:52px;height:52px;border-radius:10px;
+  background:linear-gradient(135deg,#042f2e,#0d9488);
+  border:2px solid rgba(45,212,191,.4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:900;color:#fff;
+  cursor:pointer;transition:transform .15s,background .15s;
+  user-select:none;
+}
+.tile:hover{transform:translateY(-4px);background:linear-gradient(135deg,#0d9488,#14b8a6)}
+.tile.used{opacity:.25;cursor:default;transform:none}
+
+.answer-tiles{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;min-height:64px}
+.ans-tile{
+  width:52px;height:52px;border-radius:10px;
+  background:rgba(255,255,255,.05);border:2px dashed rgba(45,212,191,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:900;cursor:pointer;transition:all .15s;
+}
+.ans-tile.filled{background:linear-gradient(135deg,#0f766e,#0d9488);border-style:solid;border-color:rgba(45,212,191,.6)}
+.ans-tile.correct-flash{background:rgba(74,222,128,.3)!important;border-color:#4ade80!important}
+.ans-tile.wrong-flash{background:rgba(248,113,113,.3)!important;border-color:#f87171!important}
+
+.actions{display:flex;gap:12px}
+.btn{
+  padding:11px 24px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:none;
+}
+.btn-hint{background:rgba(250,204,21,.1);color:#facc15;border:1px solid rgba(250,204,21,.3)}
+.btn-hint:hover{background:rgba(250,204,21,.2)}
+.btn-clear{background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1)}
+.btn-check{background:linear-gradient(135deg,#0f766e,#14b8a6);color:#fff}
+.btn-check:hover{opacity:.85}
+
+.feedback{font-size:16px;font-weight:700;min-height:24px;text-align:center}
+.feedback.ok{color:#4ade80}
+.feedback.ng{color:#f87171}
+
+.progress{font-size:13px;color:rgba(255,255,255,.35)}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#001a1a;border:1px solid rgba(45,212,191,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:360px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:10px}
+.big-score{font-size:52px;font-weight:900;color:#2dd4bf;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px}
+.mbtn{background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.mbtn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">🔤 단어 퍼즐</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="q-num">0</div><div class="stat-l">/ 10</div></div>
+  </div>
+</div>
+
+<div class="game-wrap">
+  <div class="hint-box">
+    <div class="progress" id="progress">문제 1 / 10</div>
+    <div style="margin-top:8px">뜻: <span class="hint-ko" id="hint-ko">?</span></div>
+    <div id="hint-reveal" style="margin-top:4px;color:rgba(45,212,191,.6);font-size:14px"></div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+  <div style="font-size:12px;color:rgba(255,255,255,.25);text-align:center">↑ 클릭해서 선택 · 아래에서 클릭해 취소</div>
+  <div class="answer-tiles" id="answer-tiles"></div>
+
+  <div class="actions">
+    <button class="btn btn-hint" onclick="useHint()">💡 힌트 (-5점)</button>
+    <button class="btn btn-clear" onclick="clearAnswer()">↩ 초기화</button>
+    <button class="btn btn-check" onclick="checkAnswer()">확인 ✓</button>
+  </div>
+  <div class="feedback" id="feedback"></div>
+</div>
+
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>🔤 단어 퍼즐</h2>
+    <p>섞인 알파벳을 클릭해서 올바른 영단어를 만들어 보세요!</p>
+    <button class="mbtn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="mbtn-out">목록으로</a>
+  </div>
+</div>
+
+<script>
+const WORDS=[
+  {word:'apple',ko:'사과'},{word:'school',ko:'학교'},{word:'friend',ko:'친구'},
+  {word:'flower',ko:'꽃'},{word:'water',ko:'물'},{word:'music',ko:'음악'},
+  {word:'dream',ko:'꿈'},{word:'cloud',ko:'구름'},{word:'tiger',ko:'호랑이'},
+  {word:'ocean',ko:'바다'},{word:'heart',ko:'심장/하트'},{word:'earth',ko:'지구'},
+  {word:'night',ko:'밤'},{word:'light',ko:'빛'},{word:'brave',ko:'용감한'},
+];
+
+let qNum=0,score=0,currentWord='',answer=[],hintUsed=false;
+const TOTAL=10;
+let qs=[];
+
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;
+  qs=shuffle([...WORDS]).slice(0,TOTAL);
+  document.getElementById('score').textContent='0';
+  nextQ();
+}
+
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  hintUsed=false;answer=[];
+  const {word,ko}=qs[qNum++];
+  currentWord=word;
+  document.getElementById('q-num').textContent=qNum;
+  document.getElementById('progress').textContent=`문제 ${qNum} / ${TOTAL}`;
+  document.getElementById('hint-ko').textContent=ko;
+  document.getElementById('hint-reveal').textContent='';
+  document.getElementById('feedback').textContent='';
+  document.getElementById('feedback').className='feedback';
+
+  const letters=shuffle(word.split(''));
+  const tiles=document.getElementById('tiles');
+  tiles.innerHTML='';
+  letters.forEach((l,i)=>{
+    const el=document.createElement('div');
+    el.className='tile';el.textContent=l.toUpperCase();el.dataset.idx=i;
+    el.onclick=()=>pickLetter(el,l,i);
+    tiles.appendChild(el);
+  });
+  renderAnswer();
+}
+
+function renderAnswer(){
+  const el=document.getElementById('answer-tiles');
+  el.innerHTML='';
+  for(let i=0;i<currentWord.length;i++){
+    const tile=document.createElement('div');
+    tile.className='ans-tile'+(answer[i]?' filled':'');
+    tile.textContent=answer[i]?answer[i].l.toUpperCase():'';
+    if(answer[i])tile.onclick=()=>returnLetter(i);
+    el.appendChild(tile);
+  }
+}
+
+function pickLetter(el,l,idx){
+  if(el.classList.contains('used'))return;
+  const pos=answer.length;
+  if(pos>=currentWord.length)return;
+  answer.push({l,idx});
+  el.classList.add('used');
+  renderAnswer();
+}
+
+function returnLetter(pos){
+  const {idx}=answer[pos];
+  answer.splice(pos,1);
+  document.querySelector(`.tile[data-idx="${idx}"]`).classList.remove('used');
+  renderAnswer();
+}
+
+function clearAnswer(){
+  answer=[];
+  document.querySelectorAll('.tile').forEach(t=>t.classList.remove('used'));
+  renderAnswer();
+}
+
+function useHint(){
+  if(hintUsed)return;
+  hintUsed=true;
+  document.getElementById('hint-reveal').textContent=`첫 글자: ${currentWord[0].toUpperCase()}`;
+}
+
+function checkAnswer(){
+  if(answer.length<currentWord.length){document.getElementById('feedback').textContent='모든 글자를 배치하세요!';document.getElementById('feedback').className='feedback ng';return;}
+  const ans=answer.map(a=>a.l).join('');
+  const tiles=document.querySelectorAll('.ans-tile');
+  if(ans===currentWord){
+    tiles.forEach(t=>t.classList.add('correct-flash'));
+    const pts=hintUsed?5:10;score+=pts;
+    document.getElementById('score').textContent=score;
+    document.getElementById('feedback').textContent=`✅ 정답! +${pts}점`;
+    document.getElementById('feedback').className='feedback ok';
+    setTimeout(nextQ,800);
+  } else {
+    tiles.forEach(t=>t.classList.add('wrong-flash'));
+    document.getElementById('feedback').textContent=`❌ 틀렸어요! 정답: ${currentWord.toUpperCase()}`;
+    document.getElementById('feedback').className='feedback ng';
+    setTimeout(()=>{tiles.forEach(t=>t.classList.remove('wrong-flash'));},600);
+    setTimeout(nextQ,1400);
+  }
+}
+
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>🎉 완료!</h2><div class="big-score">${score}점</div>
+    <p>${TOTAL}문제 완료!<br>만점: ${TOTAL*10}점</p>
+    <button class="mbtn" onclick="startGame()">다시 하기</button>
+    <a href="../index.html" class="mbtn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

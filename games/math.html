@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>번개 수학 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#00080f;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#60a5fa;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}
+.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#60a5fa}
+.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:500px}
+
+/* TIMER BAR */
+.timer-bar-wrap{width:100%;height:10px;background:rgba(255,255,255,.08);border-radius:999px;margin-bottom:32px;overflow:hidden}
+.timer-bar{height:100%;border-radius:999px;background:linear-gradient(90deg,#2563eb,#60a5fa);transition:width .3s linear}
+
+/* QUESTION */
+.question-box{
+  background:#0a1628;border:1px solid rgba(96,165,250,.2);border-radius:20px;
+  padding:40px 48px;text-align:center;width:100%;margin-bottom:28px;
+}
+.q-expr{font-size:clamp(28px,8vw,48px);font-weight:900;color:#fff;margin-bottom:8px}
+.q-lbl{font-size:13px;color:rgba(255,255,255,.3)}
+
+/* CHOICES */
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.choice{
+  background:#0d1f3a;border:2px solid rgba(96,165,250,.15);border-radius:14px;
+  padding:18px;font-size:22px;font-weight:800;cursor:pointer;
+  transition:all .15s;color:#fff;font-family:inherit;
+}
+.choice:hover{border-color:rgba(96,165,250,.5);background:#112644}
+.choice.correct{background:rgba(74,222,128,.15)!important;border-color:#4ade80!important;color:#4ade80}
+.choice.wrong{background:rgba(248,113,113,.15)!important;border-color:#f87171!important;color:#f87171}
+
+.combo{font-size:13px;color:#facc15;font-weight:700;min-height:20px;text-align:center;margin-top:8px}
+
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);
+  align-items:center;justify-content:center;z-index:50;
+}
+.overlay.show{display:flex}
+.modal{background:#0a1628;border:1px solid rgba(96,165,250,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:360px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:10px}
+.modal .big{font-size:48px;font-weight:900;color:#60a5fa;margin:16px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px}
+.btn{background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">⚡ 번개 수학</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="correct">0</div><div class="stat-l">정답</div></div>
+    <div class="stat"><div class="stat-v" id="time">30</div><div class="stat-l">초</div></div>
+  </div>
+</div>
+
+<div class="game-wrap">
+  <div class="timer-bar-wrap"><div class="timer-bar" id="timer-bar" style="width:100%"></div></div>
+  <div class="question-box">
+    <div class="q-expr" id="q-expr">?</div>
+    <div class="q-lbl">= ?</div>
+  </div>
+  <div class="choices" id="choices"></div>
+  <div class="combo" id="combo"></div>
+</div>
+
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>⚡ 번개 수학</h2>
+    <p>30초 안에 최대한 많은 수학 문제를 풀어보세요!</p>
+    <div class="big">30<small style="font-size:24px">초</small></div>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+
+<script>
+let score=0,correctCount=0,timeLeft=30,interval=null,combo=0,answered=false;
+let correctAns=0;
+
+const OPS=['+','-','×','÷'];
+
+function genQ(){
+  const op=OPS[Math.floor(Math.random()*OPS.length)];
+  let a,b,ans;
+  if(op==='+'){a=Math.floor(Math.random()*50)+1;b=Math.floor(Math.random()*50)+1;ans=a+b;}
+  else if(op==='-'){a=Math.floor(Math.random()*50)+20;b=Math.floor(Math.random()*a)+1;ans=a-b;}
+  else if(op==='×'){a=Math.floor(Math.random()*9)+2;b=Math.floor(Math.random()*9)+2;ans=a*b;}
+  else{a=[12,16,18,20,24,25,30,36,40,42,48,50,54,56,60,63,64,72,81][Math.floor(Math.random()*19)];
+       const divs=[2,3,4,5,6,7,8,9].filter(d=>a%d===0);b=divs[Math.floor(Math.random()*divs.length)];ans=a/b;}
+  return{expr:`${a} ${op} ${b}`,ans};
+}
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function nextQ(){
+  answered=false;
+  const {expr,ans}=genQ();
+  correctAns=ans;
+  document.getElementById('q-expr').textContent=expr;
+  const wrongs=new Set();
+  while(wrongs.size<3){
+    const delta=Math.floor(Math.random()*10)+1;
+    const w=Math.random()<.5?ans+delta:ans-delta;
+    if(w!==ans)wrongs.add(w);
+  }
+  const opts=shuffle([ans,...wrongs]);
+  const c=document.getElementById('choices');
+  c.innerHTML='';
+  opts.forEach(v=>{
+    const btn=document.createElement('button');
+    btn.className='choice';btn.textContent=v;
+    btn.onclick=()=>pick(btn,v);
+    c.appendChild(btn);
+  });
+  document.getElementById('combo').textContent='';
+}
+
+function pick(btn,val){
+  if(answered)return;
+  answered=true;
+  if(val===correctAns){
+    btn.classList.add('correct');
+    combo++;score+=10+(combo>2?combo*2:0);correctCount++;
+    document.getElementById('score').textContent=score;
+    document.getElementById('correct').textContent=correctCount;
+    document.getElementById('combo').textContent=combo>=3?`🔥 콤보 x${combo}! +${combo*2}보너스`:'';
+    setTimeout(nextQ,400);
+  } else {
+    btn.classList.add('wrong');combo=0;
+    document.querySelectorAll('.choice').forEach(b=>{if(parseInt(b.textContent)===correctAns)b.classList.add('correct');});
+    document.getElementById('combo').textContent='❌ 틀렸어요!';
+    setTimeout(nextQ,700);
+  }
+}
+
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  score=0;correctCount=0;timeLeft=30;combo=0;
+  document.getElementById('score').textContent='0';
+  document.getElementById('correct').textContent='0';
+  document.getElementById('time').textContent='30';
+  document.getElementById('timer-bar').style.width='100%';
+  clearInterval(interval);
+  interval=setInterval(()=>{
+    timeLeft--;
+    document.getElementById('time').textContent=timeLeft;
+    document.getElementById('timer-bar').style.width=(timeLeft/30*100)+'%';
+    if(timeLeft<=0){clearInterval(interval);endGame();}
+  },1000);
+  nextQ();
+}
+
+function endGame(){
+  const m=document.getElementById('modal');
+  m.innerHTML=`<h2>⏱ 시간 종료!</h2><div class="big">${score}점</div><p>${correctCount}문제 정답<br>최고 콤보: ${Math.max(combo,0)}회</p>
+  <button class="btn" onclick="startGame()">다시 하기</button>
+  <a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>
