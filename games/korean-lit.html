@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>국어 문학 퀴즈 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#080400;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#e879f9;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#e879f9}.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:540px;gap:22px}
+.genre-badge{display:inline-block;background:rgba(232,121,249,.1);border:1px solid rgba(232,121,249,.3);color:#e879f9;padding:4px 14px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:1px}
+.q-card{background:#100800;border:1px solid rgba(232,121,249,.2);border-radius:20px;padding:30px 28px;text-align:center;width:100%}
+.quote{font-size:clamp(13px,3.5vw,16px);color:rgba(255,255,255,.75);line-height:1.9;font-style:italic;border-left:3px solid rgba(232,121,249,.4);padding-left:16px;text-align:left;margin-bottom:16px}
+.q-text{font-size:clamp(14px,3.5vw,17px);font-weight:700;line-height:1.7;color:#fff}
+.q-sub{font-size:13px;color:rgba(255,255,255,.35);margin-top:8px}
+.prog{font-size:13px;color:rgba(255,255,255,.35);text-align:center}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.choice{background:#100800;border:2px solid rgba(232,121,249,.15);border-radius:14px;padding:15px 10px;font-size:14px;font-weight:700;cursor:pointer;color:#fff;font-family:inherit;transition:all .15s;text-align:center;line-height:1.5}
+.choice:hover{border-color:rgba(232,121,249,.5);background:#180c00}
+.choice.correct{background:rgba(74,222,128,.15)!important;border-color:#4ade80!important;color:#4ade80!important}
+.choice.wrong{background:rgba(248,113,113,.15)!important;border-color:#f87171!important;color:#f87171!important}
+.explain{background:rgba(232,121,249,.05);border:1px solid rgba(232,121,249,.15);border-radius:12px;padding:14px 18px;font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;width:100%;text-align:center;min-height:52px;display:flex;align-items:center;justify-content:center}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#080400;border:1px solid rgba(232,121,249,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:8px}
+.big{font-size:52px;font-weight:900;color:#e879f9;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#86198f,#a21caf);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">📚 국어 문학 퀴즈</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="qn">0</div><div class="stat-l">/ 14</div></div>
+  </div>
+</div>
+<div class="game-wrap">
+  <div class="genre-badge" id="genre-badge">고전문학</div>
+  <div class="q-card">
+    <div class="quote" id="q-quote" style="display:none"></div>
+    <div class="q-text" id="q-text">?</div>
+    <div class="q-sub" id="q-sub"></div>
+  </div>
+  <div class="prog" id="prog">문제 1 / 14</div>
+  <div class="choices" id="choices"></div>
+  <div class="explain" id="explain">정답을 선택하면 설명이 나타납니다.</div>
+</div>
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>📚 국어 문학</h2>
+    <p>고전·현대 문학 작품과 작가, 갈래,<br>주제를 묻는 문학 퀴즈입니다!</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+<script>
+const QS=[
+  {genre:'고전소설',quote:'',q:'허균이 쓴 최초의 한글 소설로, 적서 차별에 저항한 영웅의 이야기는?',sub:'조선 광해군 때 창작',ans:'홍길동전',opts:['춘향전','홍길동전','심청전','흥부전'],
+   exp:'홍길동전은 허균이 쓴 우리나라 최초의 한글 소설로, 서자 차별에 맞선 홍길동의 이야기입니다.'},
+  {genre:'고전소설',quote:'"어화, 세상 사람들아! 이 내 말씀 들어 보소…"',q:'판소리계 소설로, 신분을 초월한 사랑과 절개를 주제로 한 작품은?',sub:'',ans:'춘향전',opts:['춘향전','심청전','흥부전','토끼전'],
+   exp:'춘향전은 남원 기생 월매의 딸 춘향과 양반 이몽룡의 사랑을 그린 판소리계 소설입니다.'},
+  {genre:'고전소설',quote:'"아버지, 눈을 뜨셔요!"',q:'눈먼 아버지를 위해 인당수에 몸을 던진 딸의 효심을 그린 판소리계 소설은?',sub:'',ans:'심청전',opts:['심청전','춘향전','홍길동전','토끼전'],
+   exp:'심청전은 효도를 주제로 한 판소리계 소설로, 심청이 아버지의 눈을 뜨게 하기 위해 희생하는 이야기입니다.'},
+  {genre:'고전소설',quote:'"형님 형님 사촌 형님, 제비 다리 고쳐 주오."',q:'형제간의 우애와 권선징악을 주제로 한 판소리계 소설로, 제비가 박씨를 가져다준다는 작품은?',sub:'',ans:'흥부전',opts:['흥부전','심청전','토끼전','장화홍련전'],
+   exp:'흥부전은 착한 흥부와 욕심쟁이 놀부의 이야기로, 권선징악(勸善懲惡)이 주제입니다.'},
+  {genre:'고전시가',quote:'"청산별곡(靑山別曲)\n살어리 살어리랏다 청산에 살어리랏다…"',q:'고려 속요로, 현실에서 도피하고 싶은 마음을 노래한 이 작품의 갈래는?',sub:'',ans:'고려 속요',opts:['향가','고려 속요','시조','한시'],
+   exp:'청산별곡은 고려시대 평민들이 부른 속요로, 현실의 고통을 피해 청산(자연)으로 가고 싶다는 내용입니다.'},
+  {genre:'고전시가',quote:'"이 몸이 죽고 죽어 일백 번 고쳐 죽어\n백골이 진토 되어 넋이라도 있고 없고\n임 향한 일편단심이야 가실 줄이 있으랴."',q:'정몽주가 이성계의 아들 이방원에게 고려에 대한 충절을 밝힌 시조는?',sub:'',ans:'단심가',opts:['단심가','하여가','청산별곡','가시리'],
+   exp:'단심가는 정몽주가 고려에 대한 변치 않는 충절을 밝힌 시조입니다. 이방원의 하여가에 대한 답가입니다.'},
+  {genre:'현대소설',quote:'',q:'김유정의 작품으로, 가난한 농촌 배경에서 순박한 농부 응칠과 응오 형제의 이야기를 그린 소설은?',sub:'1930년대 농촌 배경',ans:'봄봄',opts:['봄봄','감자','운수 좋은 날','메밀꽃 필 무렵'],
+   exp:'봄봄은 김유정의 단편소설로, 데릴사위와 장인 사이의 갈등을 해학적으로 그린 작품입니다.'},
+  {genre:'현대소설',quote:'"오늘은 운수가 좋더니만…"',q:'현진건의 작품으로, 가난한 인력거꾼 김첨지의 비극적 하루를 그린 1920년대 단편소설은?',sub:'일제강점기 사실주의',ans:'운수 좋은 날',opts:['운수 좋은 날','봄봄','감자','소나기'],
+   exp:'운수 좋은 날은 현진건의 소설로, 아내가 죽는 날 아이러니하게도 돈을 많이 버는 김첨지의 이야기입니다.'},
+  {genre:'현대소설',quote:'"그는 수숫단 속에서 그 쪽빛 무명 치마에다 손을 문지르고 있었다."',q:'황순원의 단편소설로, 소년과 소녀의 순수한 첫사랑을 아름답게 그린 작품은?',sub:'',ans:'소나기',opts:['소나기','봄봄','감자','운수 좋은 날'],
+   exp:'소나기는 황순원의 소설로, 산골 소년과 서울에서 온 소녀의 짧고 순수한 사랑을 그렸습니다.'},
+  {genre:'현대시',quote:'"나 보기가 역겨워\n가실 때에는\n말없이 고이 보내 드리오리다."',q:'김소월의 시로, 이별의 정한(情恨)과 체념을 노래한 이 시의 제목은?',sub:'',ans:'진달래꽃',opts:['진달래꽃','님의 침묵','별헤는 밤','서시'],
+   exp:'진달래꽃은 김소월(1902~1934)의 시로, 이별에도 슬픔을 참고 진달래를 뿌려주겠다는 내용입니다.'},
+  {genre:'현대시',quote:'"죽는 날까지 하늘을 우러러\n한 점 부끄럼이 없기를,\n잎새에 이는 바람에도\n나는 괴로워했다."',q:'윤동주가 쓴 시로, 부끄러움 없는 삶에 대한 다짐을 담은 이 시의 제목은?',sub:'1941년 작',ans:'서시',opts:['서시','별헤는 밤','자화상','참회록'],
+   exp:'서시는 윤동주(1917~1945)가 연희전문 졸업 기념으로 쓴 시로, 순수하고 부끄럽지 않은 삶을 다짐했습니다.'},
+  {genre:'수필',quote:'',q:'법정 스님의 수필집으로, 비움과 나눔, 자연과의 조화를 이야기한 책의 제목은?',sub:'1976년 출간',ans:'무소유',opts:['무소유','난중일기','열하일기','목민심서'],
+   exp:'무소유는 법정 스님(1932~2010)의 수필집으로, 소유에 대한 집착을 버리고 단순하게 사는 삶을 이야기합니다.'},
+  {genre:'고전수필',quote:'"나는 죽어도 왜놈에게 무릎을 꿇지 않겠다"',q:'박지원이 쓴 기행 수필로, 청나라를 다녀온 견문록이자 실학사상을 담은 작품은?',sub:'1780년 청나라 방문 기록',ans:'열하일기',opts:['열하일기','목민심서','난중일기','동의보감'],
+   exp:'열하일기는 박지원이 청나라를 다녀온 기행문으로, 조선의 낙후된 현실을 비판하고 실학을 주장했습니다.'},
+  {genre:'고전',quote:'',q:'세종대왕이 1443년 창제하고 1446년 반포한 우리 고유 문자로, 창제 원리를 담은 해설서의 이름은?',sub:'유네스코 세계기록유산',ans:'훈민정음 해례본',opts:['훈민정음 해례본','동의보감','목민심서','삼국유사'],
+   exp:'훈민정음 해례본은 한글 창제의 원리와 사용법을 설명한 책으로 1997년 유네스코 세계기록유산에 등재되었습니다.'},
+];
+let qNum=0,score=0,qs=[],locked=false;
+const TOTAL=14;
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;locked=false;document.getElementById('score').textContent='0';
+  qs=shuffle([...QS]).slice(0,TOTAL);nextQ();
+}
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  locked=false;const q=qs[qNum++];
+  document.getElementById('qn').textContent=qNum;
+  document.getElementById('prog').textContent=`문제 ${qNum} / ${TOTAL}`;
+  document.getElementById('genre-badge').textContent=q.genre;
+  document.getElementById('explain').textContent='정답을 선택하면 설명이 나타납니다.';
+  const quoteEl=document.getElementById('q-quote');
+  if(q.quote){quoteEl.style.display='block';quoteEl.textContent=q.quote;}
+  else{quoteEl.style.display='none';}
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('q-sub').textContent=q.sub;
+  const el=document.getElementById('choices');el.innerHTML='';
+  shuffle([...q.opts]).forEach(o=>{
+    const btn=document.createElement('button');btn.className='choice';btn.textContent=o;
+    btn.onclick=()=>pick(btn,o===q.ans,q.ans,q);el.appendChild(btn);
+  });
+}
+function pick(btn,correct,correctVal,q){
+  if(locked)return;locked=true;
+  if(correct){btn.classList.add('correct');score+=10;document.getElementById('score').textContent=score;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.choice').forEach(b=>{if(b.textContent===correctVal)b.classList.add('correct');});}
+  document.getElementById('explain').textContent=(correct?'✅ 정답! ':'❌ 오답! ')+q.exp;
+  setTimeout(nextQ,2200);
+}
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>📚 완료!</h2><div class="big">${score}점</div><p>${TOTAL}문제 중 ${Math.floor(score/10)}개 정답</p>
+  <button class="btn" onclick="startGame()">다시 하기</button><a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

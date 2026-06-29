@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사자성어 퀴즈 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#080400;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#f59e0b;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#f59e0b}.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:520px;gap:22px}
+.q-card{background:#120800;border:1px solid rgba(245,158,11,.2);border-radius:20px;padding:36px 32px;text-align:center;width:100%}
+.hanja{font-size:clamp(14px,3.5vw,18px);color:rgba(245,158,11,.5);margin-bottom:8px;letter-spacing:4px}
+.idiom{font-size:clamp(32px,8vw,52px);font-weight:900;color:#f59e0b;letter-spacing:6px;text-shadow:0 0 30px rgba(245,158,11,.3)}
+.mode-toggle{display:flex;gap:8px;background:rgba(255,255,255,.06);border-radius:999px;padding:4px}
+.mode-btn{padding:7px 20px;border-radius:999px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(255,255,255,.5);background:transparent;transition:all .2s}
+.mode-btn.active{background:#92400e;color:#fff}
+.q-lbl{font-size:14px;color:rgba(255,255,255,.35);margin-top:10px}
+.prog{font-size:13px;color:rgba(255,255,255,.35);text-align:center}
+.choices{display:flex;flex-direction:column;gap:10px;width:100%}
+.choice{background:#120800;border:2px solid rgba(245,158,11,.15);border-radius:14px;padding:14px 20px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;font-family:inherit;transition:all .15s;text-align:left;line-height:1.5}
+.choice:hover{border-color:rgba(245,158,11,.5);background:#1c0d00}
+.choice.correct{background:rgba(74,222,128,.1)!important;border-color:#4ade80!important;color:#4ade80!important}
+.choice.wrong{background:rgba(248,113,113,.1)!important;border-color:#f87171!important;color:#f87171!important}
+.explain{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:12px;padding:14px 18px;font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;width:100%;text-align:center;min-height:52px;display:flex;align-items:center;justify-content:center}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#080400;border:1px solid rgba(245,158,11,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:8px}
+.big{font-size:52px;font-weight:900;color:#f59e0b;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#78350f,#d97706);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">🀄 사자성어 퀴즈</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="qn">0</div><div class="stat-l">/ 12</div></div>
+  </div>
+</div>
+<div class="game-wrap">
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="m1" onclick="setMode('idiom')">사자성어 → 뜻</button>
+    <button class="mode-btn" id="m2" onclick="setMode('mean')">뜻 → 사자성어</button>
+  </div>
+  <div class="q-card">
+    <div class="hanja" id="hanja"></div>
+    <div class="idiom" id="q-text">?</div>
+    <div class="q-lbl" id="q-lbl">뜻을 고르세요</div>
+  </div>
+  <div class="prog" id="prog">문제 1 / 12</div>
+  <div class="choices" id="choices"></div>
+  <div class="explain" id="explain">정답을 선택하면 유래가 나타납니다.</div>
+</div>
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>🀄 사자성어</h2>
+    <p>한자 네 글자로 이루어진 사자성어의<br>뜻을 맞혀보세요! 한국어 필수 교양입니다.</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+<script>
+const IDIOMS=[
+  {idiom:'일석이조',hanja:'一石二鳥',mean:'돌 하나로 새 두 마리를 잡는다 — 한 가지 일로 두 가지 이득을 얻음',short:'한 가지로 두 가지 이득',exp:'영어의 "Kill two birds with one stone"과 같은 표현입니다.'},
+  {idiom:'유비무환',hanja:'有備無患',mean:'준비가 있으면 근심이 없다 — 미리 준비해야 걱정이 없음',short:'준비하면 걱정 없다',exp:'《서경》에서 유래한 말로, 미리 대비하는 태도의 중요성을 강조합니다.'},
+  {idiom:'과유불급',hanja:'過猶不及',mean:'지나침은 미치지 못함과 같다 — 무엇이든 정도가 중요함',short:'지나침은 모자람과 같다',exp:'공자가 제자 자공에게 한 말에서 유래. 중용(中庸)의 덕을 강조합니다.'},
+  {idiom:'청출어람',hanja:'靑出於藍',mean:'쪽에서 나온 파랑이 쪽보다 더 푸르다 — 제자가 스승을 능가함',short:'제자가 스승을 능가함',exp:'염색 재료인 쪽(藍)보다 그것으로 만든 파란 물감이 더 진파란 데서 유래합니다.'},
+  {idiom:'동병상련',hanja:'同病相憐',mean:'같은 병을 앓는 사람끼리 서로 불쌍히 여긴다 — 같은 처지의 사람끼리 공감',short:'같은 처지끼리 서로 불쌍히 여김',exp:'중국 오나라 역사서 《오월춘추》에서 유래한 표현입니다.'},
+  {idiom:'자업자득',hanja:'自業自得',mean:'자기가 저지른 일의 결과를 자기가 받는다 — 인과응보',short:'스스로 한 일의 결과를 스스로 받음',exp:'불교의 업(業) 사상에서 나온 말로, 모든 행동에는 결과가 따른다는 의미입니다.'},
+  {idiom:'오십보백보',hanja:'五十步百步',mean:'50보 도망친 자가 100보 도망친 자를 비웃는다 — 본질은 같은 차이',short:'조금 다르지만 본질은 같음',exp:'맹자가 전쟁에서 도망치는 병사의 비유로 설명한 데서 유래합니다.'},
+  {idiom:'우공이산',hanja:'愚公移山',mean:'어리석은 노인이 산을 옮긴다 — 끈기와 노력으로 이루지 못할 것 없음',short:'끊임없는 노력으로 반드시 이룸',exp:'《열자》에 나오는 이야기로, 대를 이어 산을 옮기려 한 노인의 고사에서 유래합니다.'},
+  {idiom:'삼인성호',hanja:'三人成虎',mean:'세 사람이 범이 왔다고 하면 믿게 된다 — 거짓도 반복되면 사실처럼 됨',short:'거짓말도 반복되면 사실이 됨',exp:'전국시대 위나라 대부 방총의 이야기에서 유래. 유언비어의 위험성을 경고합니다.'},
+  {idiom:'백문불여일견',hanja:'百聞不如一見',mean:'백 번 듣는 것이 한 번 보는 것만 못하다 — 직접 경험이 중요',short:'백 번 듣기보다 한 번 보는 것이 나음',exp:'한나라 장군 조충국이 황제에게 한 말에서 유래한 표현입니다.'},
+  {idiom:'마이동풍',hanja:'馬耳東風',mean:'말 귀에 봄바람 — 남의 말을 전혀 듣지 않음',short:'남의 말을 귀담아 듣지 않음',exp:'이백의 시에서 유래. 봄바람이 불어도 말은 아무 감흥 없이 귀를 스치는 데서 나왔습니다.'},
+  {idiom:'격세지감',hanja:'隔世之感',mean:'세대가 바뀐 것 같은 느낌 — 세월의 변화로 옛날과 너무 달라진 감회',short:'세상이 크게 바뀌었다는 느낌',exp:'짧은 시간 안에 너무 많이 변해 옛날과 전혀 다른 세상에 온 것 같은 느낌을 표현합니다.'},
+];
+let mode='idiom',qNum=0,score=0,qs=[],locked=false;
+const TOTAL=12;
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function setMode(m){mode=m;document.getElementById('m1').className='mode-btn'+(m==='idiom'?' active':'');document.getElementById('m2').className='mode-btn'+(m==='mean'?' active':'');}
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;locked=false;document.getElementById('score').textContent='0';
+  qs=shuffle([...IDIOMS]).slice(0,TOTAL);nextQ();
+}
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  locked=false;const q=qs[qNum++];
+  document.getElementById('qn').textContent=qNum;
+  document.getElementById('prog').textContent=`문제 ${qNum} / ${TOTAL}`;
+  document.getElementById('explain').textContent='정답을 선택하면 유래가 나타납니다.';
+  if(mode==='idiom'){
+    document.getElementById('hanja').textContent=q.hanja;
+    document.getElementById('q-text').textContent=q.idiom;
+    document.getElementById('q-text').style.fontSize='clamp(32px,8vw,52px)';
+    document.getElementById('q-lbl').textContent='이 사자성어의 뜻은?';
+    const wrongs=shuffle(IDIOMS.filter(i=>i.short!==q.short)).slice(0,3).map(i=>i.short);
+    buildChoices([q.short,...wrongs],q.short,q);
+  } else {
+    document.getElementById('hanja').textContent='뜻을 보고 사자성어를 고르세요';
+    document.getElementById('q-text').textContent=q.short;
+    document.getElementById('q-text').style.fontSize='clamp(16px,4vw,22px)';
+    document.getElementById('q-lbl').textContent='';
+    const wrongs=shuffle(IDIOMS.filter(i=>i.idiom!==q.idiom)).slice(0,3).map(i=>i.idiom);
+    buildChoices([q.idiom,...wrongs],q.idiom,q);
+  }
+}
+function buildChoices(opts,correct,q){
+  const el=document.getElementById('choices');el.innerHTML='';
+  shuffle(opts).forEach(o=>{
+    const btn=document.createElement('button');btn.className='choice';btn.textContent=o;
+    btn.onclick=()=>pick(btn,o===correct,correct,q);el.appendChild(btn);
+  });
+}
+function pick(btn,correct,correctVal,q){
+  if(locked)return;locked=true;
+  if(correct){btn.classList.add('correct');score+=10;document.getElementById('score').textContent=score;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.choice').forEach(b=>{if(b.textContent===correctVal)b.classList.add('correct');});}
+  document.getElementById('explain').textContent=(correct?'✅ 정답! ':'❌ 오답! ')+q.exp;
+  setTimeout(nextQ,2000);
+}
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>🀄 완료!</h2><div class="big">${score}점</div><p>${TOTAL}문제 중 ${Math.floor(score/10)}개 정답</p>
+  <button class="btn" onclick="startGame()">다시 하기</button><a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

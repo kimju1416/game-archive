@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>생물 세포 퀴즈 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#000a05;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#34d399;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#34d399}.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:520px;gap:24px}
+.q-card{background:#001a0a;border:1px solid rgba(52,211,153,.2);border-radius:20px;padding:32px 28px;text-align:center;width:100%}
+.icon{font-size:48px;margin-bottom:12px}
+.q-text{font-size:clamp(14px,3.5vw,18px);font-weight:700;line-height:1.7;color:#fff}
+.hint{font-size:13px;color:rgba(255,255,255,.4);margin-top:8px;line-height:1.6}
+.prog{font-size:13px;color:rgba(255,255,255,.35);text-align:center}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.choice{background:#001a0a;border:2px solid rgba(52,211,153,.15);border-radius:14px;padding:16px 10px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;font-family:inherit;transition:all .15s;text-align:center}
+.choice:hover{border-color:rgba(52,211,153,.5);background:#002a12}
+.choice.correct{background:rgba(52,211,153,.15)!important;border-color:#34d399!important;color:#34d399!important}
+.choice.wrong{background:rgba(248,113,113,.15)!important;border-color:#f87171!important;color:#f87171!important}
+.explain{background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.15);border-radius:12px;padding:14px 18px;font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;width:100%;text-align:center;min-height:52px;display:flex;align-items:center;justify-content:center}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#000a05;border:1px solid rgba(52,211,153,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:8px}
+.big{font-size:52px;font-weight:900;color:#34d399;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#047857,#059669);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">🧬 생물 세포 퀴즈</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="qn">0</div><div class="stat-l">/ 14</div></div>
+  </div>
+</div>
+<div class="game-wrap">
+  <div class="q-card">
+    <div class="icon" id="q-icon">🔬</div>
+    <div class="q-text" id="q-text">?</div>
+    <div class="hint" id="q-hint"></div>
+  </div>
+  <div class="prog" id="prog">문제 1 / 14</div>
+  <div class="choices" id="choices"></div>
+  <div class="explain" id="explain">정답을 선택하면 설명이 나타납니다.</div>
+</div>
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>🧬 생물 세포 퀴즈</h2>
+    <p>세포 소기관의 이름과 기능을 맞혀보세요!<br>중학교 과학 필수 개념입니다.</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+<script>
+const QS=[
+  {icon:'⚡',q:'세포의 "발전소"로 불리며\n산소를 이용해 ATP(에너지)를 생산한다.',hint:'동식물 세포 모두에 있음',ans:'미토콘드리아',wrong:['핵','리보솜','골지체'],exp:'미토콘드리아는 포도당을 분해해 세포 활동에 필요한 에너지(ATP)를 만들어냅니다.'},
+  {icon:'🧠',q:'세포의 "사령부"로\nDNA(유전 정보)를 저장하고 세포 활동을 조절한다.',hint:'보통 세포당 1개 존재',ans:'핵',wrong:['미토콘드리아','엽록체','액포'],exp:'핵은 DNA를 담아 단백질 합성을 지시하고 세포 분열을 조절하는 세포의 중심입니다.'},
+  {icon:'🌿',q:'식물 세포에만 있으며\n빛 에너지로 포도당을 만드는 광합성이 일어난다.',hint:'초록색 색소(엽록소) 포함',ans:'엽록체',wrong:['미토콘드리아','핵','리보솜'],exp:'엽록체는 빛+이산화탄소+물로 포도당과 산소를 만드는 광합성 기관입니다.'},
+  {icon:'🏭',q:'단백질을 합성하는 작은 알갱이 형태의 기관으로\nRNA의 정보를 읽어 단백질을 조립한다.',hint:'세포질과 소포체 표면에 분포',ans:'리보솜',wrong:['골지체','핵','미토콘드리아'],exp:'리보솜은 mRNA의 코돈을 읽어 아미노산을 연결해 단백질을 합성합니다.'},
+  {icon:'📦',q:'소포체에서 온 물질을 가공·포장·분비하는\n세포의 "택배 센터"이다.',hint:'납작한 주머니 여러 겹 구조',ans:'골지체',wrong:['소포체','리보솜','액포'],exp:'골지체는 단백질·지질을 변형·포장해 세포 밖으로 분비하거나 세포 내 필요 위치로 보냅니다.'},
+  {icon:'🛤️',q:'리보솜에서 만들어진 단백질을 운반하는\n세포 내 통로 역할을 한다.',hint:'표면에 리보솜이 붙어 있는 "거친 소포체"도 있음',ans:'소포체',wrong:['골지체','세포막','핵막'],exp:'소포체는 단백질과 지질을 운반하는 막 구조로, 거친 소포체(리보솜 부착)와 매끄러운 소포체가 있습니다.'},
+  {icon:'🧱',q:'식물 세포에만 있으며\n셀룰로스로 이루어져 세포를 단단하게 보호한다.',hint:'동물 세포에는 없음',ans:'세포벽',wrong:['세포막','액포','엽록체'],exp:'세포벽은 셀룰로스로 만들어진 식물 세포만의 구조로, 형태 유지와 보호 기능을 합니다.'},
+  {icon:'🔒',q:'세포를 둘러싸는 얇은 막으로\n물질의 출입을 선택적으로 조절한다.',hint:'동식물 세포 모두에 있음 (반투과성)',ans:'세포막',wrong:['세포벽','핵막','골지체'],exp:'세포막은 인지질 이중층으로 이루어져 세포 안팎의 물질 이동을 조절하는 선택적 투과막입니다.'},
+  {icon:'💧',q:'식물 세포에서 크게 발달하며\n물, 색소, 노폐물을 저장한다.',hint:'성숙한 식물 세포에서 세포의 90% 차지',ans:'액포',wrong:['골지체','미토콘드리아','소포체'],exp:'액포는 식물 세포에서 물·영양소·색소·노폐물을 저장하며 세포의 팽압을 유지합니다.'},
+  {icon:'♻️',q:'세포 내 불필요한 물질이나\n노후화된 세포 소기관을 분해하는 "청소부"이다.',hint:'산성 가수분해 효소 포함',ans:'라이소솜',wrong:['미토콘드리아','액포','소포체'],exp:'라이소솜은 강력한 소화 효소를 이용해 세포 내 불필요 물질을 분해·재활용합니다.'},
+  {icon:'🔬',q:'동물 세포에 있으며\n세포 분열 시 방추사를 형성해 염색체를 당긴다.',hint:'식물 세포에는 없음',ans:'중심체',wrong:['핵','리보솜','미토콘드리아'],exp:'중심체(중심립)는 세포 분열 때 방추사를 만들어 염색체가 양극으로 이동하도록 합니다.'},
+  {icon:'🌊',q:'세포 안의 모든 내용물을 통틀어 부르는 말로\n세포막 안쪽에 채워진 반유동성 물질이다.',hint:'세포소기관들이 이 안에 떠 있음',ans:'세포질',wrong:['핵','세포막','소포체'],exp:'세포질은 세포막 안쪽 전체를 말하며 수분·단백질·영양소·소기관을 포함합니다.'},
+  {icon:'📐',q:'세포막의 주요 구성 성분으로\n친수성 머리와 소수성 꼬리를 가진 이중층 구조를 이룬다.',hint:'물과 기름 양쪽 성질을 다 가짐',ans:'인지질',wrong:['단백질','셀룰로스','포도당'],exp:'인지질 이중층은 세포막의 기본 골격으로, 친수성 머리는 바깥쪽, 소수성 꼬리는 안쪽을 향합니다.'},
+  {icon:'🔑',q:'세포막에 박혀 있으며\n특정 물질만 세포 안으로 통과시키는 역할을 한다.',hint:'열쇠-자물쇠 원리',ans:'막단백질',wrong:['인지질','셀룰로스','효소'],exp:'막단백질은 이온 채널·운반체·수용체 역할을 하며 세포막의 선택적 투과성을 담당합니다.'},
+];
+let qNum=0,score=0,qs=[],locked=false;
+const TOTAL=14;
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;locked=false;document.getElementById('score').textContent='0';
+  qs=shuffle([...QS]);nextQ();
+}
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  locked=false;const q=qs[qNum++];
+  document.getElementById('qn').textContent=qNum;
+  document.getElementById('prog').textContent=`문제 ${qNum} / ${TOTAL}`;
+  document.getElementById('q-icon').textContent=q.icon;
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('q-hint').textContent=`힌트: ${q.hint}`;
+  document.getElementById('explain').textContent='정답을 선택하면 설명이 나타납니다.';
+  const opts=shuffle([q.ans,...q.wrong]);
+  const el=document.getElementById('choices');el.innerHTML='';
+  opts.forEach(o=>{
+    const btn=document.createElement('button');btn.className='choice';btn.textContent=o;
+    btn.onclick=()=>pick(btn,o===q.ans,q);el.appendChild(btn);
+  });
+}
+function pick(btn,correct,q){
+  if(locked)return;locked=true;
+  if(correct){btn.classList.add('correct');score+=10;document.getElementById('score').textContent=score;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.choice').forEach(b=>{if(b.textContent===q.ans)b.classList.add('correct');});}
+  document.getElementById('explain').textContent=(correct?'✅ ':' ❌ 오답! 정답: '+q.ans+' | ')+q.exp;
+  setTimeout(nextQ,2000);
+}
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>🧬 완료!</h2><div class="big">${score}점</div><p>${TOTAL}문제 중 ${Math.floor(score/10)}개 정답</p>
+  <button class="btn" onclick="startGame()">다시 하기</button><a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

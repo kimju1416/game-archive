@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>화학식 퀴즈 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#05080f;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}
+.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#38bdf8}
+.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:520px;gap:24px}
+.mode-toggle{display:flex;gap:8px;background:rgba(255,255,255,.06);border-radius:999px;padding:4px}
+.mode-btn{padding:7px 20px;border-radius:999px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(255,255,255,.5);background:transparent;transition:all .2s}
+.mode-btn.active{background:#0369a1;color:#fff}
+.q-card{
+  background:#0a1628;border:1px solid rgba(56,189,248,.2);border-radius:20px;
+  padding:36px 40px;text-align:center;width:100%;
+}
+.formula{font-size:clamp(28px,8vw,48px);font-weight:900;color:#38bdf8;letter-spacing:2px;line-height:1.3;font-family:monospace}
+.q-lbl{font-size:14px;color:rgba(255,255,255,.35);margin-top:8px}
+.prog{font-size:13px;color:rgba(255,255,255,.35);text-align:center}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.choice{
+  background:#0a1628;border:2px solid rgba(56,189,248,.15);border-radius:14px;
+  padding:18px 12px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;
+  font-family:inherit;transition:all .15s;text-align:center;line-height:1.5;
+}
+.choice:hover{border-color:rgba(56,189,248,.5);background:#0d2040}
+.choice.correct{background:rgba(74,222,128,.15)!important;border-color:#4ade80!important;color:#4ade80!important}
+.choice.wrong{background:rgba(248,113,113,.15)!important;border-color:#f87171!important;color:#f87171!important}
+.streak{font-size:13px;color:#facc15;font-weight:700;min-height:20px;text-align:center}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#05080f;border:1px solid rgba(56,189,248,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:8px}
+.big{font-size:52px;font-weight:900;color:#38bdf8;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#0369a1,#0ea5e9);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">⚗️ 화학식 퀴즈</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="qn">0</div><div class="stat-l">/ 15</div></div>
+  </div>
+</div>
+<div class="game-wrap">
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="m1" onclick="setMode('formula')">화학식 → 이름</button>
+    <button class="mode-btn" id="m2" onclick="setMode('name')">이름 → 화학식</button>
+  </div>
+  <div class="q-card">
+    <div class="formula" id="q-text">?</div>
+    <div class="q-lbl" id="q-lbl">이름을 고르세요</div>
+  </div>
+  <div class="prog" id="prog">문제 1 / 15</div>
+  <div class="choices" id="choices"></div>
+  <div class="streak" id="streak"></div>
+</div>
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>⚗️ 화학식 퀴즈</h2>
+    <p>화학식과 물질 이름을 연결하세요!<br>두 가지 모드로 연습할 수 있어요.</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+<script>
+const CHEMS=[
+  {f:'H₂O',n:'물'},
+  {f:'CO₂',n:'이산화탄소'},
+  {f:'NaCl',n:'염화나트륨(소금)'},
+  {f:'HCl',n:'염산'},
+  {f:'NaOH',n:'수산화나트륨'},
+  {f:'H₂SO₄',n:'황산'},
+  {f:'O₂',n:'산소'},
+  {f:'N₂',n:'질소'},
+  {f:'CH₄',n:'메탄'},
+  {f:'NH₃',n:'암모니아'},
+  {f:'C₆H₁₂O₆',n:'포도당'},
+  {f:'CaCO₃',n:'탄산칼슘'},
+  {f:'H₂O₂',n:'과산화수소'},
+  {f:'Fe₂O₃',n:'산화철'},
+  {f:'HNO₃',n:'질산'},
+  {f:'Ca(OH)₂',n:'수산화칼슘'},
+  {f:'KMnO₄',n:'과망간산칼륨'},
+  {f:'C₂H₅OH',n:'에탄올'},
+];
+let mode='formula',qNum=0,score=0,streak=0,qs=[],locked=false;
+const TOTAL=15;
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function setMode(m){
+  mode=m;
+  document.getElementById('m1').className='mode-btn'+(m==='formula'?' active':'');
+  document.getElementById('m2').className='mode-btn'+(m==='name'?' active':'');
+}
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;streak=0;locked=false;
+  document.getElementById('score').textContent='0';
+  qs=shuffle([...CHEMS]).slice(0,TOTAL);
+  nextQ();
+}
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  locked=false;
+  const q=qs[qNum++];
+  document.getElementById('qn').textContent=qNum;
+  document.getElementById('prog').textContent=`문제 ${qNum} / ${TOTAL}`;
+  document.getElementById('streak').textContent='';
+  if(mode==='formula'){
+    document.getElementById('q-text').textContent=q.f;
+    document.getElementById('q-lbl').textContent='이 화학식의 이름은?';
+    const wrongs=shuffle(CHEMS.filter(c=>c.n!==q.n)).slice(0,3).map(c=>c.n);
+    buildChoices([q.n,...wrongs],q.n,c=>c===q.n);
+  } else {
+    document.getElementById('q-text').textContent=q.n;
+    document.getElementById('q-text').style.fontSize='clamp(18px,5vw,28px)';
+    document.getElementById('q-lbl').textContent='화학식은?';
+    const wrongs=shuffle(CHEMS.filter(c=>c.f!==q.f)).slice(0,3).map(c=>c.f);
+    buildChoices([q.f,...wrongs],q.f,c=>c===q.f);
+  }
+}
+function buildChoices(opts,correct,isCorrect){
+  const el=document.getElementById('choices');
+  el.innerHTML='';
+  shuffle(opts).forEach(o=>{
+    const btn=document.createElement('button');
+    btn.className='choice';btn.textContent=o;
+    btn.onclick=()=>pick(btn,isCorrect(o),correct);
+    el.appendChild(btn);
+  });
+}
+function pick(btn,correct,correctVal){
+  if(locked)return;locked=true;
+  if(correct){
+    btn.classList.add('correct');streak++;score+=10;
+    document.getElementById('score').textContent=score;
+    document.getElementById('streak').textContent=streak>=3?`🔥 연속 ${streak}회!`:'';
+  } else {
+    btn.classList.add('wrong');streak=0;
+    document.querySelectorAll('.choice').forEach(b=>{if(b.textContent===correctVal)b.classList.add('correct');});
+  }
+  setTimeout(nextQ,600);
+}
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>⚗️ 완료!</h2><div class="big">${score}점</div>
+  <p>${TOTAL}문제 중 ${Math.floor(score/10)}개 정답</p>
+  <button class="btn" onclick="startGame()">다시 하기</button>
+  <a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

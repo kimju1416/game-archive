@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>원소 기호 퀴즈 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a0500;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#fb923c;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#fb923c}
+.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:520px;gap:24px}
+.q-card{background:#1a0a00;border:1px solid rgba(251,146,60,.2);border-radius:20px;padding:36px 40px;text-align:center;width:100%}
+.atom{font-size:clamp(52px,14vw,88px);font-weight:900;color:#fb923c;text-shadow:0 0 40px rgba(251,146,60,.4);font-family:monospace;line-height:1.1}
+.atom-num{font-size:14px;color:rgba(255,255,255,.35);margin-bottom:8px}
+.q-lbl{font-size:14px;color:rgba(255,255,255,.35);margin-top:8px}
+.prog{font-size:13px;color:rgba(255,255,255,.35);text-align:center}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.choice{background:#1a0a00;border:2px solid rgba(251,146,60,.15);border-radius:14px;padding:16px 12px;font-size:16px;font-weight:700;cursor:pointer;color:#fff;font-family:inherit;transition:all .15s;text-align:center}
+.choice:hover{border-color:rgba(251,146,60,.5);background:#261200}
+.choice.correct{background:rgba(74,222,128,.15)!important;border-color:#4ade80!important;color:#4ade80!important}
+.choice.wrong{background:rgba(248,113,113,.15)!important;border-color:#f87171!important;color:#f87171!important}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#0a0500;border:1px solid rgba(251,146,60,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:8px}
+.big{font-size:52px;font-weight:900;color:#fb923c;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#c2410c,#ea580c);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+.mode-toggle{display:flex;gap:8px;background:rgba(255,255,255,.06);border-radius:999px;padding:4px}
+.mode-btn{padding:7px 20px;border-radius:999px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(255,255,255,.5);background:transparent;transition:all .2s}
+.mode-btn.active{background:#c2410c;color:#fff}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">⚛️ 원소 기호 퀴즈</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="qn">0</div><div class="stat-l">/ 15</div></div>
+  </div>
+</div>
+<div class="game-wrap">
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="m1" onclick="setMode('sym')">기호 → 이름</button>
+    <button class="mode-btn" id="m2" onclick="setMode('name')">이름 → 기호</button>
+  </div>
+  <div class="q-card">
+    <div class="atom-num" id="atom-num"></div>
+    <div class="atom" id="q-text">?</div>
+    <div class="q-lbl" id="q-lbl">원소 이름은?</div>
+  </div>
+  <div class="prog" id="prog">문제 1 / 15</div>
+  <div class="choices" id="choices"></div>
+</div>
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>⚛️ 원소 기호</h2>
+    <p>주기율표의 원소 기호와 이름을 연결하세요!<br>1~20번 원소 + 주요 원소 포함</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+<script>
+const ELEMENTS=[
+  {num:1,sym:'H',name:'수소'},{num:2,sym:'He',name:'헬륨'},{num:3,sym:'Li',name:'리튬'},
+  {num:4,sym:'Be',name:'베릴륨'},{num:5,sym:'B',name:'붕소'},{num:6,sym:'C',name:'탄소'},
+  {num:7,sym:'N',name:'질소'},{num:8,sym:'O',name:'산소'},{num:9,sym:'F',name:'플루오린'},
+  {num:10,sym:'Ne',name:'네온'},{num:11,sym:'Na',name:'나트륨'},{num:12,sym:'Mg',name:'마그네슘'},
+  {num:13,sym:'Al',name:'알루미늄'},{num:14,sym:'Si',name:'규소'},{num:15,sym:'P',name:'인'},
+  {num:16,sym:'S',name:'황'},{num:17,sym:'Cl',name:'염소'},{num:18,sym:'Ar',name:'아르곤'},
+  {num:19,sym:'K',name:'칼륨'},{num:20,sym:'Ca',name:'칼슘'},{num:26,sym:'Fe',name:'철'},
+  {num:29,sym:'Cu',name:'구리'},{num:30,sym:'Zn',name:'아연'},{num:47,sym:'Ag',name:'은'},
+  {num:79,sym:'Au',name:'금'},{num:80,sym:'Hg',name:'수은'},{num:82,sym:'Pb',name:'납'},
+];
+let mode='sym',qNum=0,score=0,qs=[],locked=false;
+const TOTAL=15;
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function setMode(m){mode=m;document.getElementById('m1').className='mode-btn'+(m==='sym'?' active':'');document.getElementById('m2').className='mode-btn'+(m==='name'?' active':'');}
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;locked=false;
+  document.getElementById('score').textContent='0';
+  qs=shuffle([...ELEMENTS]).slice(0,TOTAL);
+  nextQ();
+}
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  locked=false;const q=qs[qNum++];
+  document.getElementById('qn').textContent=qNum;
+  document.getElementById('prog').textContent=`문제 ${qNum} / ${TOTAL}`;
+  document.getElementById('atom-num').textContent=`원자 번호 ${q.num}`;
+  if(mode==='sym'){
+    document.getElementById('q-text').textContent=q.sym;
+    document.getElementById('q-text').style.fontSize='clamp(52px,14vw,88px)';
+    document.getElementById('q-lbl').textContent='이 원소의 이름은?';
+    const wrongs=shuffle(ELEMENTS.filter(e=>e.name!==q.name)).slice(0,3).map(e=>e.name);
+    buildChoices([q.name,...wrongs],q.name);
+  } else {
+    document.getElementById('q-text').textContent=q.name;
+    document.getElementById('q-text').style.fontSize='clamp(24px,6vw,40px)';
+    document.getElementById('q-lbl').textContent='원소 기호는?';
+    const wrongs=shuffle(ELEMENTS.filter(e=>e.sym!==q.sym)).slice(0,3).map(e=>e.sym);
+    buildChoices([q.sym,...wrongs],q.sym);
+  }
+}
+function buildChoices(opts,correct){
+  const el=document.getElementById('choices');el.innerHTML='';
+  shuffle(opts).forEach(o=>{
+    const btn=document.createElement('button');btn.className='choice';btn.textContent=o;
+    btn.onclick=()=>pick(btn,o===correct,correct);
+    el.appendChild(btn);
+  });
+}
+function pick(btn,correct,correctVal){
+  if(locked)return;locked=true;
+  if(correct){btn.classList.add('correct');score+=10;document.getElementById('score').textContent=score;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.choice').forEach(b=>{if(b.textContent===correctVal)b.classList.add('correct');});}
+  setTimeout(nextQ,600);
+}
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>⚛️ 완료!</h2><div class="big">${score}점</div><p>${TOTAL}문제 중 ${Math.floor(score/10)}개 정답</p>
+  <button class="btn" onclick="startGame()">다시 하기</button><a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>역사 연표 순서 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a0700;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#fbbf24;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#fbbf24}.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:560px;gap:20px}
+.instruct{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:14px 20px;font-size:14px;color:rgba(255,255,255,.6);text-align:center;line-height:1.7}
+.instruct strong{color:#fbbf24}
+.q-label{font-size:13px;color:rgba(255,255,255,.4);text-align:center}
+.events-wrap{display:flex;flex-direction:column;gap:10px;width:100%}
+.event-card{
+  background:#1a1400;border:2px solid rgba(251,191,36,.2);border-radius:14px;
+  padding:16px 20px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:14px;
+}
+.event-card:hover{border-color:rgba(251,191,36,.5);background:#221c00}
+.event-card.selected{border-color:#fbbf24;background:rgba(251,191,36,.1)}
+.event-card.correct{border-color:#4ade80!important;background:rgba(74,222,128,.1)!important}
+.event-card.wrong{border-color:#f87171!important;background:rgba(248,113,113,.1)!important}
+.event-num{width:32px;height:32px;border-radius:50%;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fbbf24;flex-shrink:0}
+.event-text{font-size:14px;font-weight:700;line-height:1.5}
+.event-year{font-size:12px;color:rgba(255,255,255,.3);margin-top:2px}
+.answer-slots{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.slot{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.06);border:2px dashed rgba(251,191,36,.25);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fbbf24;transition:all .2s}
+.slot.filled{background:rgba(251,191,36,.12);border-style:solid;border-color:rgba(251,191,36,.5)}
+.prog{font-size:13px;color:rgba(255,255,255,.35)}
+.feedback{font-size:15px;font-weight:700;min-height:22px;text-align:center}
+.feedback.ok{color:#4ade80}.feedback.ng{color:#f87171}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#0a0700;border:1px solid rgba(251,191,36,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:8px}
+.big{font-size:52px;font-weight:900;color:#fbbf24;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#92400e,#d97706);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">📅 역사 연표 순서</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="rn">1</div><div class="stat-l">/ 8라운드</div></div>
+  </div>
+</div>
+<div class="game-wrap">
+  <div class="instruct">4개의 역사적 사건을 <strong>일어난 순서대로</strong> 클릭하세요!</div>
+  <div class="prog" id="prog">라운드 1 / 8</div>
+  <div class="answer-slots" id="slots"></div>
+  <div class="events-wrap" id="events"></div>
+  <div class="feedback" id="feedback"></div>
+</div>
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>📅 역사 연표</h2>
+    <p>한국사 주요 사건을 시간 순서대로 배열하세요!<br>4개 이벤트를 오래된 것부터 클릭하세요.</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+<script>
+const ALL_EVENTS=[
+  {year:-2333,text:'고조선 건국',desc:'단군왕검이 고조선을 세움 (BC 2333)'},
+  {year:-108,text:'한사군 설치',desc:'한무제가 고조선을 멸망시키고 4개 군 설치 (BC 108)'},
+  {year:313,text:'고구려, 낙랑군 축출',desc:'고구려 미천왕이 한사군의 마지막 낙랑군을 몰아냄 (313)'},
+  {year:372,text:'불교 전래 (고구려)',desc:'소수림왕 때 중국 전진에서 불교가 전래됨 (372)'},
+  {year:392,text:'광개토대왕 즉위',desc:'고구려 역사상 최대 영토 확장 (392)'},
+  {year:612,text:'살수대첩',desc:'을지문덕 장군이 수나라 군대를 살수에서 대파 (612)'},
+  {year:660,text:'백제 멸망',desc:'나당연합군에 의해 백제가 멸망함 (660)'},
+  {year:668,text:'고구려 멸망',desc:'나당연합군에 의해 고구려가 멸망함 (668)'},
+  {year:676,text:'삼국 통일 완성',desc:'신라가 당나라 군대를 몰아내고 삼국 통일 완성 (676)'},
+  {year:918,text:'고려 건국',desc:'왕건이 고려를 세우고 후삼국 통일 (918)'},
+  {year:993,text:'서희의 외교 담판',desc:'거란의 1차 침입 때 서희가 외교로 강동 6주 획득 (993)'},
+  {year:1234,text:'금속활자 발명',desc:'고려, 세계 최초의 금속활자 발명 (1234)'},
+  {year:1270,text:'삼별초 항쟁',desc:'몽골 강화 후에도 삼별초가 대몽 항쟁 지속 (1270)'},
+  {year:1392,text:'조선 건국',desc:'이성계가 고려를 무너뜨리고 조선 건국 (1392)'},
+  {year:1443,text:'훈민정음 창제',desc:'세종대왕이 백성을 위해 한글(훈민정음) 창제 (1443)'},
+  {year:1592,text:'임진왜란 발발',desc:'일본 도요토미 히데요시의 침략으로 임진왜란 시작 (1592)'},
+  {year:1636,text:'병자호란',desc:'청나라의 침략, 인조가 남한산성에서 항전 후 항복 (1636)'},
+  {year:1876,text:'강화도 조약',desc:'조선이 일본과 맺은 최초의 근대적 불평등 조약 (1876)'},
+  {year:1894,text:'갑오개혁',desc:'신분제 폐지 등 근대적 개혁이 이루어짐 (1894)'},
+  {year:1919,text:'3·1 운동',desc:'전국적 독립 만세 운동 (1919)'},
+  {year:1945,text:'8·15 광복',desc:'일제강점기 종식, 조선 독립 (1945)'},
+  {year:1950,text:'6·25 전쟁',desc:'북한의 남침으로 한국전쟁 발발 (1950)'},
+];
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+let round=0,score=0,currentEvents=[],selected=[],locked=false;
+const TOTAL=8;
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  round=0;score=0;document.getElementById('score').textContent='0';
+  nextRound();
+}
+function nextRound(){
+  if(round>=TOTAL){endGame();return;}
+  locked=false;selected=[];round++;
+  document.getElementById('rn').textContent=round;
+  document.getElementById('prog').textContent=`라운드 ${round} / ${TOTAL}`;
+  document.getElementById('feedback').textContent='';
+  // pick 4 events
+  currentEvents=shuffle([...ALL_EVENTS]).slice(0,4).sort((a,b)=>Math.random()-.5);
+  renderSlots();renderEvents();
+}
+function renderSlots(){
+  const el=document.getElementById('slots');
+  el.innerHTML='';
+  for(let i=0;i<4;i++){
+    const s=document.createElement('div');s.className='slot';s.id=`slot-${i}`;s.textContent=i+1;
+    el.appendChild(s);
+  }
+}
+function renderEvents(){
+  const el=document.getElementById('events');el.innerHTML='';
+  currentEvents.forEach((e,i)=>{
+    const card=document.createElement('div');card.className='event-card';card.dataset.idx=i;
+    card.innerHTML=`<div class="event-num" id="enum-${i}">${i+1}</div>
+      <div><div class="event-text">${e.text}</div><div class="event-year">${e.desc}</div></div>`;
+    card.onclick=()=>selectEvent(i,card);
+    el.appendChild(card);
+  });
+}
+function selectEvent(idx,card){
+  if(locked||selected.includes(idx))return;
+  selected.push(idx);
+  card.classList.add('selected');
+  const slot=document.getElementById(`slot-${selected.length-1}`);
+  slot.textContent=selected.length;slot.classList.add('filled');
+  if(selected.length===4)checkAnswer();
+}
+function checkAnswer(){
+  locked=true;
+  const sorted=[...currentEvents].map((_,i)=>i).sort((a,b)=>currentEvents[a].year-currentEvents[b].year);
+  const correct=selected.every((v,i)=>v===sorted[i]);
+  const cards=document.querySelectorAll('.event-card');
+  if(correct){
+    cards.forEach(c=>c.classList.add('correct'));
+    score+=15;document.getElementById('score').textContent=score;
+    document.getElementById('feedback').textContent='✅ 정답! +15점';
+    document.getElementById('feedback').className='feedback ok';
+  } else {
+    cards.forEach(c=>c.classList.add('wrong'));
+    const ans=sorted.map(i=>currentEvents[i].text).join(' → ');
+    document.getElementById('feedback').textContent=`❌ 오답! 정답: ${ans}`;
+    document.getElementById('feedback').className='feedback ng';
+  }
+  setTimeout(nextRound,2200);
+}
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>📅 완료!</h2><div class="big">${score}점</div>
+  <p>${TOTAL}라운드 중 ${Math.floor(score/15)}개 정답 (만점 ${TOTAL*15}점)</p>
+  <button class="btn" onclick="startGame()">다시 하기</button><a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

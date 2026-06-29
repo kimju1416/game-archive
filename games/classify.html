@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>동물 분류 퀴즈 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#030a05;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#86efac;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#86efac}.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:540px;gap:20px}
+.q-card{background:#040e06;border:1px solid rgba(134,239,172,.2);border-radius:20px;padding:32px 28px;text-align:center;width:100%}
+.animal-em{font-size:72px;line-height:1.2;margin-bottom:8px}
+.animal-name{font-size:clamp(20px,5vw,30px);font-weight:900}
+.animal-hint{font-size:13px;color:rgba(255,255,255,.4);margin-top:8px;line-height:1.6}
+.q-ask{font-size:15px;color:rgba(134,239,172,.7);font-weight:700;margin-top:12px}
+.prog{font-size:13px;color:rgba(255,255,255,.35);text-align:center}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.choice{background:#040e06;border:2px solid rgba(134,239,172,.15);border-radius:14px;padding:16px 10px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;font-family:inherit;transition:all .15s;text-align:center;line-height:1.5}
+.choice:hover{border-color:rgba(134,239,172,.5);background:#061408}
+.choice.correct{background:rgba(134,239,172,.15)!important;border-color:#86efac!important;color:#86efac!important}
+.choice.wrong{background:rgba(248,113,113,.15)!important;border-color:#f87171!important;color:#f87171!important}
+.explain{background:rgba(134,239,172,.05);border:1px solid rgba(134,239,172,.15);border-radius:12px;padding:14px 18px;font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;width:100%;text-align:center;min-height:52px;display:flex;align-items:center;justify-content:center}
+.tab-row{display:flex;gap:8px;background:rgba(255,255,255,.05);border-radius:999px;padding:4px;flex-wrap:wrap;justify-content:center}
+.tab{padding:6px 16px;border-radius:999px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(255,255,255,.4);background:transparent;transition:all .2s}
+.tab.active{background:#166534;color:#fff}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#030a05;border:1px solid rgba(134,239,172,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:8px}
+.big{font-size:52px;font-weight:900;color:#86efac;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#14532d,#166534);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">🦁 동물 분류 퀴즈</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="qn">0</div><div class="stat-l">/ 16</div></div>
+  </div>
+</div>
+<div class="game-wrap">
+  <div class="tab-row" id="tab-row">
+    <button class="tab active" onclick="setType('class')">척추동물 분류</button>
+    <button class="tab" onclick="setType('spine')">척추/무척추</button>
+    <button class="tab" onclick="setType('blood')">정온/변온</button>
+  </div>
+  <div class="q-card">
+    <div class="animal-em" id="animal-em">🐾</div>
+    <div class="animal-name" id="animal-name">?</div>
+    <div class="animal-hint" id="animal-hint"></div>
+    <div class="q-ask" id="q-ask">이 동물의 분류는?</div>
+  </div>
+  <div class="prog" id="prog">문제 1 / 16</div>
+  <div class="choices" id="choices"></div>
+  <div class="explain" id="explain">정답을 선택하면 설명이 나타납니다.</div>
+</div>
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>🦁 동물 분류</h2>
+    <p>동물을 분류하는 3가지 퀴즈!<br>척추동물 종류 · 척추 유무 · 체온 조절</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+<script>
+const ANIMALS=[
+  {em:'🐶',name:'개',hint:'새끼를 낳아 젖을 먹여 키움',class:'포유류',spine:'척추동물',blood:'정온동물',
+   exp:'포유류는 척추동물로, 젖을 먹이고 털이 있으며 체온이 일정합니다.'},
+  {em:'🐦',name:'참새',hint:'깃털이 있고 날개로 날아다님',class:'조류',spine:'척추동물',blood:'정온동물',
+   exp:'조류는 깃털·날개·부리·뼈속 공기주머니가 특징이며 알을 낳습니다.'},
+  {em:'🐍',name:'뱀',hint:'비늘이 있고 다리가 없음',class:'파충류',spine:'척추동물',blood:'변온동물',
+   exp:'파충류는 비늘로 덮인 피부, 변온성, 폐호흡이 특징입니다.'},
+  {em:'🐸',name:'개구리',hint:'물속(올챙이)→육지 성체로 변태함',class:'양서류',spine:'척추동물',blood:'변온동물',
+   exp:'양서류는 피부호흡+폐호흡, 물과 육지 모두에서 생활하며 변온동물입니다.'},
+  {em:'🐟',name:'붕어',hint:'아가미로 호흡하며 물속에서만 삶',class:'어류',spine:'척추동물',blood:'변온동물',
+   exp:'어류는 아가미로 호흡하고 지느러미로 이동하며 대부분 비늘이 있습니다.'},
+  {em:'🦋',name:'나비',hint:'유충→번데기→성충으로 변태함',class:'곤충류',spine:'무척추동물',blood:'변온동물',
+   exp:'곤충은 무척추동물로 머리·가슴·배 3부분, 다리 6개, 날개 4개(또는 2개)가 특징입니다.'},
+  {em:'🦑',name:'오징어',hint:'다리 10개, 먹물을 뿜음',class:'연체동물',spine:'무척추동물',blood:'변온동물',
+   exp:'연체동물은 뼈가 없고 몸이 부드러우며 외투막이 있습니다. 조개·달팽이도 연체동물.'},
+  {em:'🦀',name:'게',hint:'딱딱한 겉껍데기, 다리 10개',class:'갑각류',spine:'무척추동물',blood:'변온동물',
+   exp:'갑각류는 외골격(키틴질)이 있고 탈피하며 성장합니다. 새우·가재도 갑각류.'},
+  {em:'🐘',name:'코끼리',hint:'지구상 가장 큰 육지동물',class:'포유류',spine:'척추동물',blood:'정온동물',
+   exp:'코끼리는 포유류로, 인간처럼 사회적 집단을 이루고 높은 지능을 가집니다.'},
+  {em:'🐊',name:'악어',hint:'비늘이 있고 강이나 습지에 삶',class:'파충류',spine:'척추동물',blood:'변온동물',
+   exp:'악어는 파충류 중 가장 큰 동물로, 심장이 4개의 방으로 나뉘어 포유류와 유사합니다.'},
+  {em:'🦈',name:'상어',hint:'물고기이지만 뼈가 없고 연골로 이루어짐',class:'어류',spine:'척추동물',blood:'변온동물',
+   exp:'상어는 어류이지만 경골어류와 달리 연골로 이루어진 연골어류입니다.'},
+  {em:'🦎',name:'도마뱀',hint:'꼬리가 잘려도 다시 자람',class:'파충류',spine:'척추동물',blood:'변온동물',
+   exp:'도마뱀은 파충류로, 꼬리 자절(자기방어)과 재생 능력이 있습니다.'},
+  {em:'🐙',name:'문어',hint:'다리 8개, 지능이 높음',class:'연체동물',spine:'무척추동물',blood:'변온동물',
+   exp:'문어는 연체동물 중 두족류로, 문제 해결·위장·도구 사용이 가능한 높은 지능을 가집니다.'},
+  {em:'🐧',name:'펭귄',hint:'날지 못하고 헤엄을 잘 침',class:'조류',spine:'척추동물',blood:'정온동물',
+   exp:'펭귄은 날개가 지느러미로 변형된 조류입니다. 날지 못하지만 물속에서 매우 빠릅니다.'},
+  {em:'🐝',name:'꿀벌',hint:'꽃의 꿀을 모아 벌집에 저장',class:'곤충류',spine:'무척추동물',blood:'변온동물',
+   exp:'꿀벌은 사회성 곤충으로 여왕벌·일벌·수벌의 계층 사회를 이루며 생태계에서 중요한 꽃가루 매개자입니다.'},
+  {em:'🦔',name:'고슴도치',hint:'등에 날카로운 가시가 있음',class:'포유류',spine:'척추동물',blood:'정온동물',
+   exp:'고슴도치는 포유류로, 위협을 받으면 공처럼 몸을 말아 가시로 방어합니다.'},
+];
+const TYPES={
+  class:{ask:'이 동물의 척추동물 분류는?',key:'class',opts:['포유류','조류','파충류','양서류','어류','곤충류','연체동물','갑각류']},
+  spine:{ask:'이 동물은?',key:'spine',opts:['척추동물','무척추동물']},
+  blood:{ask:'이 동물의 체온 조절 방식은?',key:'blood',opts:['정온동물','변온동물']},
+};
+let type='class',qNum=0,score=0,qs=[],locked=false;
+const TOTAL=16;
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function setType(t){
+  type=t;
+  document.querySelectorAll('.tab').forEach((tb,i)=>{tb.classList.toggle('active',['class','spine','blood'][i]===t)});
+}
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;locked=false;document.getElementById('score').textContent='0';
+  qs=shuffle([...ANIMALS]).slice(0,TOTAL);nextQ();
+}
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  locked=false;const q=qs[qNum++];
+  const t=TYPES[type];
+  document.getElementById('qn').textContent=qNum;
+  document.getElementById('prog').textContent=`문제 ${qNum} / ${TOTAL}`;
+  document.getElementById('animal-em').textContent=q.em;
+  document.getElementById('animal-name').textContent=q.name;
+  document.getElementById('animal-hint').textContent=q.hint;
+  document.getElementById('q-ask').textContent=t.ask;
+  document.getElementById('explain').textContent='정답을 선택하면 설명이 나타납니다.';
+  const correct=q[t.key];
+  const wrongs=shuffle(t.opts.filter(o=>o!==correct)).slice(0,3);
+  const opts=shuffle([correct,...wrongs]);
+  const el=document.getElementById('choices');el.innerHTML='';
+  opts.forEach(o=>{
+    const btn=document.createElement('button');btn.className='choice';btn.textContent=o;
+    btn.onclick=()=>pick(btn,o===correct,correct,q);el.appendChild(btn);
+  });
+}
+function pick(btn,correct,correctVal,q){
+  if(locked)return;locked=true;
+  if(correct){btn.classList.add('correct');score+=10;document.getElementById('score').textContent=score;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.choice').forEach(b=>{if(b.textContent===correctVal)b.classList.add('correct');});}
+  document.getElementById('explain').textContent=(correct?'✅ 정답! ':'❌ 오답! ')+q.exp;
+  setTimeout(nextQ,2000);
+}
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>🦁 완료!</h2><div class="big">${score}점</div><p>${TOTAL}문제 중 ${Math.floor(score/10)}개 정답</p>
+  <button class="btn" onclick="startGame()">다시 하기</button><a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

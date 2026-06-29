@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>영어 문법 퀴즈 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#04080f;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#818cf8;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#818cf8}.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:540px;gap:22px}
+.category-badge{display:inline-block;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;padding:4px 14px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:1px}
+.q-card{background:#080d20;border:1px solid rgba(129,140,248,.2);border-radius:20px;padding:32px 28px;text-align:center;width:100%}
+.sentence{font-size:clamp(16px,4vw,22px);font-weight:700;line-height:1.8;color:#fff}
+.blank{display:inline-block;min-width:80px;border-bottom:3px solid #818cf8;color:#818cf8;padding:0 8px;font-style:normal}
+.ko-trans{font-size:13px;color:rgba(255,255,255,.35);margin-top:12px;line-height:1.6}
+.prog{font-size:13px;color:rgba(255,255,255,.35);text-align:center}
+.choices{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%}
+.choice{background:#080d20;border:2px solid rgba(129,140,248,.15);border-radius:14px;padding:16px 12px;font-size:16px;font-weight:700;cursor:pointer;color:#fff;font-family:monospace;transition:all .15s;text-align:center}
+.choice:hover{border-color:rgba(129,140,248,.5);background:#0d1530}
+.choice.correct{background:rgba(74,222,128,.15)!important;border-color:#4ade80!important;color:#4ade80!important}
+.choice.wrong{background:rgba(248,113,113,.15)!important;border-color:#f87171!important;color:#f87171!important}
+.explain{background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.15);border-radius:12px;padding:14px 18px;font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;width:100%;text-align:center;min-height:52px;display:flex;align-items:center;justify-content:center}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#04080f;border:1px solid rgba(129,140,248,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:8px}
+.big{font-size:52px;font-weight:900;color:#818cf8;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#3730a3,#4f46e5);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">✏️ 영어 문법 퀴즈</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="qn">0</div><div class="stat-l">/ 15</div></div>
+  </div>
+</div>
+<div class="game-wrap">
+  <div class="category-badge" id="category">GRAMMAR</div>
+  <div class="q-card">
+    <div class="sentence" id="sentence"></div>
+    <div class="ko-trans" id="ko-trans"></div>
+  </div>
+  <div class="prog" id="prog">문제 1 / 15</div>
+  <div class="choices" id="choices"></div>
+  <div class="explain" id="explain">빈칸에 들어갈 알맞은 단어를 고르세요.</div>
+</div>
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>✏️ 영어 문법</h2>
+    <p>빈칸에 알맞은 단어를 골라<br>올바른 영어 문장을 완성하세요!<br>시제·관사·전치사·비교급 등 다양한 문법</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+<script>
+const QS=[
+  {cat:'시제',s:'She ___ to school every day.',ko:'그녀는 매일 학교에 간다.',ans:'goes',opts:['go','goes','went','going'],exp:'"She"는 3인칭 단수이므로 현재 시제에서 동사에 -s를 붙입니다.'},
+  {cat:'시제',s:'I ___ my homework yesterday.',ko:'나는 어제 숙제를 했다.',ans:'did',opts:['do','does','did','done'],exp:'yesterday(어제)가 있으므로 과거 시제 did를 씁니다.'},
+  {cat:'시제',s:'They ___ playing soccer now.',ko:'그들은 지금 축구를 하고 있다.',ans:'are',opts:['is','am','are','were'],exp:'They는 복수이므로 현재진행형 be동사는 are입니다.'},
+  {cat:'시제',s:'He ___ already eaten lunch.',ko:'그는 이미 점심을 먹었다.',ans:'has',opts:['have','has','had','is'],exp:'"He"는 3인칭 단수이므로 현재완료에서 has를 씁니다.'},
+  {cat:'관사',s:'I have ___ umbrella.',ko:'나는 우산 하나를 가지고 있다.',ans:'an',opts:['a','an','the','—'],exp:'umbrella는 모음 소리(u)로 시작하므로 an을 씁니다.'},
+  {cat:'관사',s:'___ sun rises in the east.',ko:'태양은 동쪽에서 뜬다.',ans:'The',opts:['A','An','The','—'],exp:'세상에 하나뿐인 것(태양, 달 등)에는 정관사 the를 씁니다.'},
+  {cat:'전치사',s:'He was born ___ 2005.',ko:'그는 2005년에 태어났다.',ans:'in',opts:['in','on','at','for'],exp:'연도 앞에는 전치사 in을 씁니다. (in 2005)'},
+  {cat:'전치사',s:'The meeting starts ___ 9 o\'clock.',ko:'회의는 9시에 시작한다.',ans:'at',opts:['in','on','at','by'],exp:'특정 시각 앞에는 at을 씁니다. (at 9 o\'clock)'},
+  {cat:'전치사',s:'I\'ve been studying ___ three hours.',ko:'나는 세 시간 동안 공부해왔다.',ans:'for',opts:['since','for','during','while'],exp:'기간(숫자+시간)을 나타낼 때는 for를 씁니다. since는 시점 앞에 씁니다.'},
+  {cat:'비교급',s:'Seoul is ___ than Busan.',ko:'서울은 부산보다 더 크다.',ans:'bigger',opts:['big','bigger','biggest','more big'],exp:'짧은 형용사의 비교급은 -er을 붙입니다. big → bigger (자음 반복)'},
+  {cat:'비교급',s:'This movie is ___ interesting than that one.',ko:'이 영화는 저것보다 더 흥미롭다.',ans:'more',opts:['most','more','much','very'],exp:'긴 형용사(3음절↑)의 비교급은 more를 앞에 씁니다.'},
+  {cat:'조동사',s:'You ___ exercise regularly.',ko:'너는 규칙적으로 운동해야 한다.',ans:'should',opts:['can','should','must','would'],exp:'should는 "~해야 한다"는 의무·권고를 나타냅니다.'},
+  {cat:'수동태',s:'The letter ___ written by Tom.',ko:'그 편지는 Tom에 의해 쓰였다.',ans:'was',opts:['is','was','were','has'],exp:'과거 수동태는 was/were + 과거분사. 주어 The letter는 단수이므로 was를 씁니다.'},
+  {cat:'접속사',s:'I will go ___ it rains.',ko:'비가 와도 나는 갈 것이다.',ans:'even if',opts:['because','even if','although','so that'],exp:'"비가 와도"는 양보절로 even if(비록 ~라도)가 가장 자연스럽습니다.'},
+  {cat:'부정사',s:'She wants ___ a doctor.',ko:'그녀는 의사가 되고 싶다.',ans:'to be',opts:['be','to be','being','been'],exp:'want의 목적어로는 to부정사(to+동사원형)를 씁니다.'},
+];
+let qNum=0,score=0,qs=[],locked=false;
+const TOTAL=15;
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;locked=false;document.getElementById('score').textContent='0';
+  qs=shuffle([...QS]).slice(0,TOTAL);nextQ();
+}
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  locked=false;const q=qs[qNum++];
+  document.getElementById('qn').textContent=qNum;
+  document.getElementById('prog').textContent=`문제 ${qNum} / ${TOTAL}`;
+  document.getElementById('category').textContent=q.cat;
+  document.getElementById('sentence').innerHTML=q.s.replace('___',`<span class="blank">___</span>`);
+  document.getElementById('ko-trans').textContent=`한국어: ${q.ko}`;
+  document.getElementById('explain').textContent='빈칸에 들어갈 알맞은 단어를 고르세요.';
+  const el=document.getElementById('choices');el.innerHTML='';
+  shuffle([...q.opts]).forEach(o=>{
+    const btn=document.createElement('button');btn.className='choice';btn.textContent=o;
+    btn.onclick=()=>pick(btn,o===q.ans,q);el.appendChild(btn);
+  });
+}
+function pick(btn,correct,q){
+  if(locked)return;locked=true;
+  if(correct){btn.classList.add('correct');score+=10;document.getElementById('score').textContent=score;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.choice').forEach(b=>{if(b.textContent===q.ans)b.classList.add('correct');});}
+  document.getElementById('sentence').innerHTML=q.s.replace('___',`<span class="blank" style="color:#4ade80">${q.ans}</span>`);
+  document.getElementById('explain').textContent=(correct?'✅ 정답! ':'❌ 오답! ')+q.exp;
+  setTimeout(nextQ,2000);
+}
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>✏️ 완료!</h2><div class="big">${score}점</div><p>${TOTAL}문제 중 ${Math.floor(score/10)}개 정답</p>
+  <button class="btn" onclick="startGame()">다시 하기</button><a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수학 공식 퀴즈 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#04080a;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#22d3ee;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#22d3ee}.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:520px;gap:22px}
+.mode-toggle{display:flex;gap:8px;background:rgba(255,255,255,.06);border-radius:999px;padding:4px}
+.mode-btn{padding:7px 18px;border-radius:999px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(255,255,255,.5);background:transparent;transition:all .2s}
+.mode-btn.active{background:#0e7490;color:#fff}
+.q-card{background:#040f12;border:1px solid rgba(34,211,238,.2);border-radius:20px;padding:36px 32px;text-align:center;width:100%}
+.q-icon{font-size:44px;margin-bottom:10px}
+.formula-box{font-size:clamp(22px,6vw,40px);font-weight:900;color:#22d3ee;font-family:monospace;letter-spacing:2px;line-height:1.4;text-shadow:0 0 20px rgba(34,211,238,.3)}
+.q-sub{font-size:14px;color:rgba(255,255,255,.35);margin-top:10px}
+.prog{font-size:13px;color:rgba(255,255,255,.35);text-align:center}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.choice{background:#040f12;border:2px solid rgba(34,211,238,.15);border-radius:14px;padding:16px 10px;font-size:14px;font-weight:700;cursor:pointer;color:#fff;font-family:inherit;transition:all .15s;text-align:center;line-height:1.5}
+.choice:hover{border-color:rgba(34,211,238,.5);background:#061518}
+.choice.correct{background:rgba(74,222,128,.15)!important;border-color:#4ade80!important;color:#4ade80!important}
+.choice.wrong{background:rgba(248,113,113,.15)!important;border-color:#f87171!important;color:#f87171!important}
+.explain{background:rgba(34,211,238,.05);border:1px solid rgba(34,211,238,.15);border-radius:12px;padding:14px 18px;font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;width:100%;text-align:center;min-height:52px;display:flex;align-items:center;justify-content:center}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#04080a;border:1px solid rgba(34,211,238,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:8px}
+.big{font-size:52px;font-weight:900;color:#22d3ee;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#0e7490,#0891b2);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">📐 수학 공식 퀴즈</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="qn">0</div><div class="stat-l">/ 14</div></div>
+  </div>
+</div>
+<div class="game-wrap">
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="m1" onclick="setMode('formula')">공식 → 개념</button>
+    <button class="mode-btn" id="m2" onclick="setMode('concept')">개념 → 공식</button>
+  </div>
+  <div class="q-card">
+    <div class="q-icon" id="q-icon">📐</div>
+    <div class="formula-box" id="q-text">?</div>
+    <div class="q-sub" id="q-sub"></div>
+  </div>
+  <div class="prog" id="prog">문제 1 / 14</div>
+  <div class="choices" id="choices"></div>
+  <div class="explain" id="explain">정답을 선택하면 설명이 나타납니다.</div>
+</div>
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>📐 수학 공식</h2>
+    <p>도형·방정식·수열 등<br>중학교 핵심 수학 공식을 퀴즈로 익혀보세요!</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+<script>
+const QS=[
+  {icon:'⭕',formula:'πr²',concept:'원의 넓이',sub:'r = 반지름, π ≈ 3.14',exp:'원의 넓이 = 파이(π) × 반지름(r)의 제곱. 예: 반지름 5 → 넓이 = π×25 ≈ 78.5'},
+  {icon:'⭕',formula:'2πr',concept:'원의 둘레(원주)',sub:'r = 반지름',exp:'원의 둘레 = 2 × π × 반지름. 지름 × π 로도 계산할 수 있습니다.'},
+  {icon:'📐',formula:'a² + b² = c²',concept:'피타고라스 정리',sub:'직각삼각형의 세 변 관계',exp:'직각삼각형에서 두 직각변(a,b)의 제곱합 = 빗변(c)의 제곱. 예: 3²+4²=5²'},
+  {icon:'🔺',formula:'½ × b × h',concept:'삼각형의 넓이',sub:'b = 밑변, h = 높이',exp:'삼각형 넓이 = 밑변 × 높이 ÷ 2. 어떤 삼각형에도 적용됩니다.'},
+  {icon:'🔷',formula:'½(a+b)×h',concept:'사다리꼴의 넓이',sub:'a = 윗변, b = 아랫변, h = 높이',exp:'사다리꼴 넓이 = (윗변 + 아랫변) ÷ 2 × 높이'},
+  {icon:'🌐',formula:'(4/3)πr³',concept:'구의 부피',sub:'r = 반지름',exp:'구의 부피 = 4/3 × π × 반지름³. 축구공 같은 완전한 구의 부피입니다.'},
+  {icon:'🌐',formula:'4πr²',concept:'구의 겉넓이',sub:'r = 반지름',exp:'구의 겉넓이 = 4 × π × 반지름². 지구본의 표면적을 구할 때 사용합니다.'},
+  {icon:'🏛️',formula:'πr²h',concept:'원기둥의 부피',sub:'r = 반지름, h = 높이',exp:'원기둥 부피 = 밑면(원) 넓이 × 높이 = π×r²×h'},
+  {icon:'📈',formula:'aₙ = a₁+(n-1)d',concept:'등차수열의 일반항',sub:'a₁ = 첫째항, d = 공차',exp:'첫째항에 공차를 (n-1)번 더한 것이 n번째 항입니다. 예: 2,5,8,11… d=3'},
+  {icon:'📊',formula:'Sₙ = n(a₁+aₙ)/2',concept:'등차수열의 합',sub:'n = 항의 수',exp:'등차수열의 합 = 항의 개수 × (첫째항 + 끝항) / 2. 1부터 100까지 합 = 100×101÷2 = 5050'},
+  {icon:'🔢',formula:'x = (-b±√(b²-4ac)) / 2a',concept:'이차방정식의 근의 공식',sub:'ax²+bx+c=0 형태',exp:'판별식 D = b²-4ac. D>0: 근 2개, D=0: 중근, D<0: 실수 근 없음'},
+  {icon:'🚀',formula:'v = s / t',concept:'속력(속도)',sub:'s = 거리, t = 시간',exp:'속력 = 거리 ÷ 시간. 예: 100km를 2시간에 이동 → 시속 50km'},
+  {icon:'📦',formula:'밑면적 × h',concept:'기둥의 부피',sub:'h = 높이',exp:'삼각기둥·사각기둥·원기둥 등 모든 기둥의 부피 = 밑면 넓이 × 높이'},
+  {icon:'⚡',formula:'E = mc²',concept:'질량-에너지 등가 원리',sub:'m = 질량, c = 빛의 속도',exp:'아인슈타인의 특수상대성이론. 질량과 에너지는 서로 변환 가능합니다.'},
+];
+let mode='formula',qNum=0,score=0,qs=[],locked=false;
+const TOTAL=14;
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function setMode(m){mode=m;document.getElementById('m1').className='mode-btn'+(m==='formula'?' active':'');document.getElementById('m2').className='mode-btn'+(m==='concept'?' active':'');}
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;locked=false;document.getElementById('score').textContent='0';
+  qs=shuffle([...QS]).slice(0,TOTAL);nextQ();
+}
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  locked=false;const q=qs[qNum++];
+  document.getElementById('qn').textContent=qNum;
+  document.getElementById('prog').textContent=`문제 ${qNum} / ${TOTAL}`;
+  document.getElementById('q-icon').textContent=q.icon;
+  document.getElementById('explain').textContent='정답을 선택하면 설명이 나타납니다.';
+  if(mode==='formula'){
+    document.getElementById('q-text').textContent=q.formula;
+    document.getElementById('q-text').style.fontSize='clamp(22px,6vw,40px)';
+    document.getElementById('q-sub').textContent=q.sub;
+    const wrongs=shuffle(QS.filter(x=>x.concept!==q.concept)).slice(0,3).map(x=>x.concept);
+    buildChoices([q.concept,...wrongs],q.concept,q);
+  } else {
+    document.getElementById('q-text').textContent=q.concept;
+    document.getElementById('q-text').style.fontSize='clamp(18px,5vw,28px)';
+    document.getElementById('q-sub').textContent='이 개념의 공식은?';
+    const wrongs=shuffle(QS.filter(x=>x.formula!==q.formula)).slice(0,3).map(x=>x.formula);
+    buildChoices([q.formula,...wrongs],q.formula,q);
+  }
+}
+function buildChoices(opts,correct,q){
+  const el=document.getElementById('choices');el.innerHTML='';
+  shuffle(opts).forEach(o=>{
+    const btn=document.createElement('button');btn.className='choice';btn.textContent=o;
+    btn.onclick=()=>pick(btn,o===correct,correct,q);el.appendChild(btn);
+  });
+}
+function pick(btn,correct,correctVal,q){
+  if(locked)return;locked=true;
+  if(correct){btn.classList.add('correct');score+=10;document.getElementById('score').textContent=score;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.choice').forEach(b=>{if(b.textContent===correctVal)b.classList.add('correct');});}
+  document.getElementById('explain').textContent=(correct?'✅ 정답! ':'❌ 오답! ')+q.exp;
+  setTimeout(nextQ,2000);
+}
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>📐 완료!</h2><div class="big">${score}점</div><p>${TOTAL}문제 중 ${Math.floor(score/10)}개 정답</p>
+  <button class="btn" onclick="startGame()">다시 하기</button><a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>

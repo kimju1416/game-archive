@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>태양계 퀴즈 · 학습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#03040f;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.back{color:#93c5fd;text-decoration:none;font-size:14px;font-weight:700}
+.stats{display:flex;gap:20px}.stat{text-align:center}
+.stat-v{font-size:18px;font-weight:900;color:#93c5fd}.stat-l{font-size:11px;color:rgba(255,255,255,.4)}
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:520px;gap:22px}
+.q-card{background:#030814;border:1px solid rgba(147,197,253,.2);border-radius:20px;padding:36px 28px;text-align:center;width:100%;position:relative;overflow:hidden}
+.q-card::before{content:'✦';position:absolute;top:10px;right:14px;color:rgba(255,255,255,.1);font-size:28px}
+.planet-em{font-size:64px;line-height:1.2;margin-bottom:8px}
+.q-text{font-size:clamp(15px,4vw,19px);font-weight:700;line-height:1.7;color:#fff}
+.q-sub{font-size:13px;color:rgba(255,255,255,.35);margin-top:8px;line-height:1.6}
+.category{display:inline-block;background:rgba(147,197,253,.1);border:1px solid rgba(147,197,253,.3);color:#93c5fd;padding:4px 14px;border-radius:999px;font-size:12px;font-weight:700;margin-bottom:14px}
+.prog{font-size:13px;color:rgba(255,255,255,.35);text-align:center}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.choice{background:#030814;border:2px solid rgba(147,197,253,.15);border-radius:14px;padding:16px 10px;font-size:14px;font-weight:700;cursor:pointer;color:#fff;font-family:inherit;transition:all .15s;text-align:center;line-height:1.5}
+.choice:hover{border-color:rgba(147,197,253,.5);background:#050d20}
+.choice.correct{background:rgba(74,222,128,.15)!important;border-color:#4ade80!important;color:#4ade80!important}
+.choice.wrong{background:rgba(248,113,113,.15)!important;border-color:#f87171!important;color:#f87171!important}
+.explain{background:rgba(147,197,253,.05);border:1px solid rgba(147,197,253,.15);border-radius:12px;padding:14px 18px;font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;width:100%;text-align:center;min-height:52px;display:flex;align-items:center;justify-content:center}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.modal{background:#03040f;border:1px solid rgba(147,197,253,.4);border-radius:20px;padding:40px 48px;text-align:center;max-width:380px;width:90%}
+.modal h2{font-size:28px;font-weight:900;margin-bottom:8px}
+.big{font-size:52px;font-weight:900;color:#93c5fd;margin:12px 0}
+.modal p{color:rgba(255,255,255,.6);margin-bottom:24px;font-size:15px;line-height:1.7}
+.btn{background:linear-gradient(135deg,#1e3a8a,#1d4ed8);color:#fff;border:none;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px}
+.btn-out{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;display:inline-block;padding:12px 32px;border-radius:999px;font-size:15px;font-weight:700;margin:4px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="../index.html" class="back">← 목록</a>
+  <span style="font-size:16px;font-weight:700">🔭 태양계 퀴즈</span>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="score">0</div><div class="stat-l">점수</div></div>
+    <div class="stat"><div class="stat-v" id="qn">0</div><div class="stat-l">/ 15</div></div>
+  </div>
+</div>
+<div class="game-wrap">
+  <div class="category" id="category">행성</div>
+  <div class="q-card">
+    <div class="planet-em" id="planet-em">🌍</div>
+    <div class="q-text" id="q-text">?</div>
+    <div class="q-sub" id="q-sub"></div>
+  </div>
+  <div class="prog" id="prog">문제 1 / 15</div>
+  <div class="choices" id="choices"></div>
+  <div class="explain" id="explain">정답을 선택하면 설명이 나타납니다.</div>
+</div>
+<div class="overlay show" id="overlay">
+  <div class="modal" id="modal">
+    <h2>🔭 태양계 퀴즈</h2>
+    <p>행성 순서·크기·특징·위성 등<br>태양계와 우주에 대한 과학 퀴즈!</p>
+    <button class="btn" onclick="startGame()">시작!</button>
+    <a href="../index.html" class="btn-out">목록으로</a>
+  </div>
+</div>
+<script>
+const QS=[
+  {cat:'행성 순서',em:'☀️',q:'태양에서 가장 가까운 행성은?',sub:'태양계의 첫 번째 행성',
+   ans:'수성',opts:['수성','금성','지구','화성'],
+   exp:'수성(Mercury)은 태양에 가장 가깝고 가장 작은 행성입니다. 대기가 거의 없어 낮 온도 430°C, 밤 -180°C의 극단적 온도차를 보입니다.'},
+  {cat:'행성 순서',em:'🪐',q:'태양계에서 고리가 가장 뚜렷한 행성은?',sub:'얼음과 암석으로 이루어진 고리',
+   ans:'토성',opts:['목성','토성','천왕성','해왕성'],
+   exp:'토성(Saturn)은 아름다운 고리로 유명하며 태양계에서 두 번째로 큰 행성입니다. 밀도가 물보다 낮아 물에 뜰 수 있습니다!'},
+  {cat:'크기',em:'🌍',q:'태양계에서 가장 큰 행성은?',sub:'',
+   ans:'목성',opts:['목성','토성','해왕성','천왕성'],
+   exp:'목성(Jupiter)은 태양계 최대 행성으로, 지구보다 11배 크고 질량은 318배입니다. 유명한 대적반(大赤斑)은 300년 이상 지속되는 거대한 폭풍입니다.'},
+  {cat:'특징',em:'🔴',q:'붉은 행성이라 불리며 인류가 가장 가고 싶은 행성은?',sub:'산화철(녹)로 인해 붉게 보임',
+   ans:'화성',opts:['화성','금성','수성','목성'],
+   exp:'화성(Mars)은 산화철 성분으로 붉게 보이며, 태양계 최고봉 올림푸스 산(27km)과 가장 긴 협곡 마리너스 계곡이 있습니다.'},
+  {cat:'특징',em:'💛',q:'태양계에서 가장 뜨거운 행성은? (태양 제외)',sub:'두꺼운 이산화탄소 대기로 온실효과',
+   ans:'금성',opts:['금성','수성','화성','목성'],
+   exp:'금성(Venus)은 태양에 더 가까운 수성보다 뜨겁습니다(462°C). 두꺼운 이산화탄소 대기가 강력한 온실효과를 일으키기 때문입니다.'},
+  {cat:'위성',em:'🌙',q:'지구의 위성인 달까지의 평균 거리는 약 얼마인가요?',sub:'',
+   ans:'약 38만 km',opts:['약 38만 km','약 3.8만 km','약 380만 km','약 1억 km'],
+   exp:'달은 지구에서 평균 약 384,400km 떨어져 있습니다. 빛의 속도로 약 1.3초, 아폴로 우주선으로는 약 3일 걸립니다.'},
+  {cat:'위성',em:'🪐',q:'태양계에서 위성이 가장 많은 행성은?',sub:'2023년 기준',
+   ans:'토성',opts:['목성','토성','천왕성','해왕성'],
+   exp:'토성은 2023년 기준 146개의 위성이 확인되어 태양계 최다 위성 보유 행성입니다. 가장 큰 위성 타이탄은 대기가 있습니다.'},
+  {cat:'특징',em:'🌀',q:'자전축이 97.77° 기울어져 옆으로 누워 도는 행성은?',sub:'태양계에서 유일하게 옆으로 자전',
+   ans:'천왕성',opts:['천왕성','해왕성','토성','목성'],
+   exp:'천왕성(Uranus)은 자전축이 거의 수평으로 누워 자전합니다. 한쪽 극이 42년간 햇빛을 받고 42년간 밤이 계속됩니다.'},
+  {cat:'행성 순서',em:'🔵',q:'태양에서 가장 먼 행성은?',sub:'2006년 명왕성이 왜소행성으로 강등된 후',
+   ans:'해왕성',opts:['해왕성','천왕성','토성','명왕성'],
+   exp:'해왕성(Neptune)은 태양에서 가장 먼 행성으로, 태양까지의 거리가 지구의 30배입니다. 태양계에서 바람이 가장 강합니다(시속 2,100km).'},
+  {cat:'태양',em:'☀️',q:'태양의 표면 온도는 약 몇 도인가요?',sub:'',
+   ans:'약 6,000°C',opts:['약 600°C','약 6,000°C','약 60,000°C','약 1,500만°C'],
+   exp:'태양 표면(광구)은 약 5,500~6,000°C입니다. 태양 중심부는 약 1,500만°C로 핵융합 반응이 일어나 빛과 에너지를 만듭니다.'},
+  {cat:'태양계',em:'☄️',q:'태양계 행성 순서에서 화성과 목성 사이에 있는 소천체 집합은?',sub:'수천 개의 암석 천체로 구성',
+   ans:'소행성대',opts:['소행성대','카이퍼 벨트','오르트 구름','혜성대'],
+   exp:'소행성대(Asteroid Belt)는 화성과 목성 사이에 위치한 수많은 소행성의 집합입니다. 세레스가 가장 큰 소행성입니다.'},
+  {cat:'지구',em:'🌍',q:'지구에서 생명체가 살 수 있는 가장 큰 이유는?',sub:'',
+   ans:'적절한 온도와 액체 물',opts:['적절한 온도와 액체 물','지구의 크기','산소만 있어서','달이 있어서'],
+   exp:'지구는 태양과의 적당한 거리(골디락스 존)로 액체 상태의 물이 존재합니다. 물은 생명체의 기본 요소입니다.'},
+  {cat:'특징',em:'🌑',q:'달에서 볼 때 지구가 뜨고 지는 현상을 무엇이라 하는가?',sub:'1968년 아폴로 8호 승무원이 최초 촬영',
+   ans:'지구돋이',opts:['지구돋이','일출','월식','개기일식'],
+   exp:'지구돋이(Earthrise)는 달에서 지구가 지평선 위로 떠오르는 장면입니다. 1968년 아폴로 8호의 사진은 환경 운동에 큰 영향을 미쳤습니다.'},
+  {cat:'태양계',em:'🌌',q:'태양계가 속한 은하의 이름은?',sub:'나선형 모양',
+   ans:'은하수(밀키웨이)',opts:['은하수(밀키웨이)','안드로메다','마젤란 구름','소용돌이 은하'],
+   exp:'태양계는 은하수(Milky Way) 은하의 오리온 팔에 위치합니다. 은하수에는 약 2,000~4,000억 개의 별이 있습니다.'},
+  {cat:'탐사',em:'🚀',q:'인류가 최초로 달에 착륙한 년도는?',sub:'아폴로 계획',
+   ans:'1969년',opts:['1959년','1963년','1969년','1972년'],
+   exp:'1969년 7월 20일, 아폴로 11호의 닐 암스트롱과 버즈 올드린이 인류 최초로 달에 착륙했습니다. "한 사람의 작은 발걸음이 인류의 위대한 도약"'},
+];
+let qNum=0,score=0,qs=[],locked=false;
+const TOTAL=15;
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function startGame(){
+  document.getElementById('overlay').classList.remove('show');
+  qNum=0;score=0;locked=false;document.getElementById('score').textContent='0';
+  qs=shuffle([...QS]).slice(0,TOTAL);nextQ();
+}
+function nextQ(){
+  if(qNum>=TOTAL){endGame();return;}
+  locked=false;const q=qs[qNum++];
+  document.getElementById('qn').textContent=qNum;
+  document.getElementById('prog').textContent=`문제 ${qNum} / ${TOTAL}`;
+  document.getElementById('category').textContent=q.cat;
+  document.getElementById('planet-em').textContent=q.em;
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('q-sub').textContent=q.sub;
+  document.getElementById('explain').textContent='정답을 선택하면 설명이 나타납니다.';
+  const el=document.getElementById('choices');el.innerHTML='';
+  shuffle([...q.opts]).forEach(o=>{
+    const btn=document.createElement('button');btn.className='choice';btn.textContent=o;
+    btn.onclick=()=>pick(btn,o===q.ans,q.ans,q);el.appendChild(btn);
+  });
+}
+function pick(btn,correct,correctVal,q){
+  if(locked)return;locked=true;
+  if(correct){btn.classList.add('correct');score+=10;document.getElementById('score').textContent=score;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.choice').forEach(b=>{if(b.textContent===correctVal)b.classList.add('correct');});}
+  document.getElementById('explain').textContent=(correct?'✅ 정답! ':'❌ 오답! ')+q.exp;
+  setTimeout(nextQ,2200);
+}
+function endGame(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<h2>🔭 완료!</h2><div class="big">${score}점</div><p>${TOTAL}문제 중 ${Math.floor(score/10)}개 정답</p>
+  <button class="btn" onclick="startGame()">다시 하기</button><a href="../index.html" class="btn-out">목록으로</a>`;
+  document.getElementById('overlay').classList.add('show');
+}
+</script>
+</body>
+</html>
